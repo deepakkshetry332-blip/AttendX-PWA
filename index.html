@@ -5,189 +5,252 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#f0f4ff"/>
-<meta name="description" content="AttendX - Smart Attendance Tracker with Geofencing"/>
+<meta name="description" content="AttendX - Smart Attendance Tracker"/>
 <link rel="manifest" href="manifest.json"/>
 <title>AttendX — Attendance Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-:root {
-  --bg: #f0f4ff;
-  --surface: #ffffff;
-  --surface2: #f8faff;
-  --border: #dde3f0;
-  --accent: #4361ee;
-  --accent2: #7c3aed;
-  --green: #059669;
-  --red: #dc2626;
-  --yellow: #d97706;
-  --text: #1e293b;
-  --muted: #64748b;
-  --shadow: 0 2px 16px rgba(67,97,238,0.08);
-  --shadow-lg: 0 8px 32px rgba(67,97,238,0.15);
-  --font-mono: 'Space Mono', monospace;
-  --font-main: 'Plus Jakarta Sans', sans-serif;
+:root{
+  --bg:#f0f4ff;
+  --surface:#ffffff;
+  --surface2:#f8faff;
+  --border:#dde3f0;
+  --accent:#4361ee;
+  --accent2:#7c3aed;
+  --green:#059669;
+  --red:#dc2626;
+  --yellow:#d97706;
+  --orange:#ea580c;
+  --text:#1e293b;
+  --muted:#64748b;
+  --shadow:0 2px 16px rgba(67,97,238,0.08);
+  --shadow-md:0 4px 24px rgba(67,97,238,0.12);
+  --shadow-lg:0 8px 40px rgba(67,97,238,0.18);
+  --radius:20px;
+  --font-mono:'Space Mono',monospace;
+  --font:'Plus Jakarta Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-height:100vh;overflow-x:hidden;font-size:16px}
-
-/* LAYOUT */
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden;font-size:16px;-webkit-font-smoothing:antialiased}
 .hidden{display:none!important}
 
-/* TOAST */
-#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
-.toast{background:var(–surface);border:1px solid var(–border);border-left:4px solid var(–accent);padding:14px 20px;border-radius:12px;font-size:14px;font-family:var(–font-mono);animation:slideIn .3s ease;max-width:320px;box-shadow:var(–shadow)}
+/* ── TOAST ── */
+#toast-container{position:fixed;top:20px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:320px;width:calc(100% - 32px)}
+.toast{background:var(–surface);border:1px solid var(–border);border-left:4px solid var(–accent);padding:14px 18px;border-radius:14px;font-size:14px;font-family:var(–font-mono);animation:slideIn .3s cubic-bezier(.34,1.56,.64,1);box-shadow:var(–shadow-md)}
 .toast.error{border-left-color:var(–red)}
 .toast.success{border-left-color:var(–green)}
 @keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
 
-/* LOADING */
-#loading-screen{position:fixed;inset:0;background:var(–surface);display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:20px}
-.loader-logo{font-family:var(–font-main);font-size:2.8rem;font-weight:800;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.loader-bar{width:220px;height:4px;background:var(–border);border-radius:4px;overflow:hidden}
-.loader-fill{height:100%;background:linear-gradient(90deg,var(–accent),var(–accent2));animation:load 1.5s ease infinite}
-@keyframes load{0%{width:0%;margin-left:0}50%{width:60%}100%{width:0%;margin-left:100%}}
+/* ── LOADING ── */
+#loading-screen{position:fixed;inset:0;background:var(–surface);display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:24px;animation:fadeOut .4s ease 2s forwards}
+@keyframes fadeOut{to{opacity:0;pointer-events:none}}
+.loader-brand{display:flex;flex-direction:column;align-items:center;gap:12px}
+.loader-icon{width:72px;height:72px;background:linear-gradient(135deg,var(–accent),var(–accent2));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 8px 32px rgba(67,97,238,0.35);animation:pulse-icon 1.5s ease-in-out infinite}
+@keyframes pulse-icon{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.loader-title{font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px}
+.loader-sub{font-size:13px;color:var(–muted);font-family:var(–font-mono)}
+.loader-dots{display:flex;gap:8px}
+.loader-dot{width:10px;height:10px;border-radius:50%;background:var(–border);animation:dot-bounce 1.4s ease-in-out infinite}
+.loader-dot:nth-child(1){animation-delay:0s;background:var(–accent)}
+.loader-dot:nth-child(2){animation-delay:.2s;background:var(–accent2)}
+.loader-dot:nth-child(3){animation-delay:.4s;background:var(–accent)}
+@keyframes dot-bounce{0%,80%,100%{transform:scale(0.8);opacity:.5}40%{transform:scale(1.2);opacity:1}}
 
-/* AUTH */
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#f0f4ff 0%,#e8edff 100%)}
-.auth-card{background:var(–surface);border:1px solid var(–border);border-radius:24px;padding:40px 36px;width:100%;max-width:440px;box-shadow:var(–shadow-lg)}
-.auth-logo{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
-.auth-sub{color:var(–muted);font-size:14px;margin-bottom:32px;font-family:var(–font-mono)}
-.role-tabs{display:flex;gap:8px;margin-bottom:28px;background:var(–bg);padding:6px;border-radius:14px}
-.role-tab{flex:1;padding:12px;border:none;background:transparent;color:var(–muted);border-radius:10px;cursor:pointer;font-family:var(–font-main);font-weight:700;font-size:15px;transition:all .2s}
+/* ── AUTH ── */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+background:linear-gradient(145deg,#eef2ff 0%,#f0f4ff 40%,#e8edff 100%);position:relative;overflow:hidden}
+#auth-screen::before{content:’’;position:absolute;top:-30%;right:-20%;width:600px;height:600px;
+background:radial-gradient(circle,rgba(67,97,238,0.08) 0%,transparent 70%);pointer-events:none}
+#auth-screen::after{content:’’;position:absolute;bottom:-20%;left:-10%;width:400px;height:400px;
+background:radial-gradient(circle,rgba(124,58,237,0.06) 0%,transparent 70%);pointer-events:none}
+
+.auth-wrap{width:100%;max-width:440px;position:relative;z-index:1}
+
+/* College banner above card */
+.college-banner{background:linear-gradient(135deg,var(–accent),var(–accent2));border-radius:20px 20px 0 0;padding:20px 28px;text-align:center;margin-bottom:0}
+.college-name-display{font-size:13px;font-weight:700;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:var(–font-mono)}
+.college-title{font-size:16px;font-weight:800;color:#fff}
+
+.auth-card{background:var(–surface);border:1px solid var(–border);border-top:none;border-radius:0 0 24px 24px;padding:32px 28px 36px;box-shadow:var(–shadow-lg)}
+.auth-logo-row{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.auth-logo-icon{width:52px;height:52px;background:linear-gradient(135deg,var(–accent),var(–accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 16px rgba(67,97,238,0.3);flex-shrink:0}
+.auth-logo-text{font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px}
+.auth-tagline{font-size:13px;color:var(–muted);font-family:var(–font-mono);margin-bottom:28px}
+
+.role-tabs{display:flex;gap:6px;margin-bottom:24px;background:var(–bg);padding:5px;border-radius:14px}
+.role-tab{flex:1;padding:12px 8px;border:none;background:transparent;color:var(–muted);border-radius:10px;cursor:pointer;font-family:var(–font);font-weight:700;font-size:15px;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:6px}
 .role-tab.active{background:var(–surface);color:var(–accent);box-shadow:var(–shadow);border:1px solid var(–border)}
 
-/* FORMS */
-.form-group{margin-bottom:20px}
-.form-group label{display:block;font-size:13px;font-weight:700;color:var(–text);margin-bottom:8px;letter-spacing:.02em}
-.form-group input,.form-group select{width:100%;padding:14px 18px;background:var(–bg);border:2px solid var(–border);border-radius:12px;color:var(–text);font-family:var(–font-main);font-size:16px;outline:none;transition:border-color .2s}
-.form-group input:focus,.form-group select:focus{border-color:var(–accent);background:var(–surface)}
+/* ── FORM INPUTS ── */
+.form-group{margin-bottom:18px;position:relative}
+.form-group label{display:block;font-size:13px;font-weight:700;color:var(–text);margin-bottom:7px;letter-spacing:.01em}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:17px;pointer-events:none}
+.form-group input,.form-group select{width:100%;padding:14px 18px 14px 44px;background:var(–bg);border:2px solid var(–border);border-radius:13px;color:var(–text);font-family:var(–font);font-size:16px;outline:none;transition:all .2s;-webkit-appearance:none}
+.form-group input:focus,.form-group select:focus{border-color:var(–accent);background:var(–surface);box-shadow:0 0 0 4px rgba(67,97,238,0.08)}
+.form-group input.no-icon,.form-group select.no-icon{padding-left:18px}
 
-/* BUTTONS */
-.btn{width:100%;padding:16px;border:none;border-radius:14px;font-family:var(–font-main);font-weight:700;font-size:16px;cursor:pointer;transition:all .2s}
-.btn-primary{background:linear-gradient(135deg,var(–accent),var(–accent2));color:#fff;box-shadow:0 4px 16px rgba(67,97,238,0.3)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(67,97,238,0.4)}
-.btn-primary:active{transform:translateY(0)}
+/* ── BUTTONS ── */
+.btn{width:100%;padding:17px;border:none;border-radius:14px;font-family:var(–font);font-weight:800;font-size:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;letter-spacing:.01em}
+.btn-primary{background:linear-gradient(135deg,var(–accent),var(–accent2));color:#fff;box-shadow:0 4px 20px rgba(67,97,238,0.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(67,97,238,0.45)}
+.btn-primary:active{transform:translateY(0);box-shadow:0 2px 10px rgba(67,97,238,0.3)}
 .btn-secondary{background:var(–surface);color:var(–text);border:2px solid var(–border)}
-.btn-secondary:hover{border-color:var(–accent);color:var(–accent)}
-.btn-danger{background:#fee2e2;color:var(–red);border:2px solid #fecaca}
-.btn-danger:hover{background:var(–red);color:#fff}
-.btn-green{background:#d1fae5;color:var(–green);border:2px solid #a7f3d0}
-.btn-green:hover{background:var(–green);color:#fff}
-.btn-warning{background:#fef3c7;color:var(–yellow);border:2px solid #fde68a}
+.btn-secondary:hover{border-color:var(–accent);color:var(–accent);background:#f0f4ff}
+.btn-danger{background:#fee2e2;color:var(–red);border:2px solid #fecaca;font-weight:700}
+.btn-danger:hover{background:var(–red);color:#fff;border-color:var(–red)}
+.btn-green{background:#d1fae5;color:var(–green);border:2px solid #a7f3d0;font-weight:700}
+.btn-green:hover{background:var(–green);color:#fff;border-color:var(–green)}
+.btn-warning{background:#fef3c7;color:var(–yellow);border:2px solid #fde68a;font-weight:700}
 .btn-warning:hover{background:var(–yellow);color:#fff}
 .btn-sm{padding:10px 18px;font-size:14px;width:auto;border-radius:10px}
-.link-btn{background:none;border:none;color:var(–accent);cursor:pointer;font-family:var(–font-mono);font-size:13px;text-decoration:underline;margin-top:14px;display:block;text-align:center}
+.link-btn{background:none;border:none;color:var(–accent);cursor:pointer;font-size:13px;text-decoration:none;margin-top:14px;display:block;text-align:center;font-weight:600;transition:opacity .2s}
+.link-btn:hover{opacity:.7}
 
-/* TOP BAR */
-.top-bar{background:var(–surface);border-bottom:2px solid var(–border);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(–shadow)}
-.top-logo{font-weight:800;font-size:1.4rem;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.top-user{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.user-badge{background:var(–bg);border:2px solid var(–border);padding:8px 16px;border-radius:50px;font-size:13px;font-family:var(–font-mono);font-weight:700;color:var(–accent)}
-.logout-btn{background:none;border:2px solid var(–border);color:var(–muted);padding:8px 16px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:all .2s}
-.logout-btn:hover{border-color:var(–red);color:var(–red);background:#fee2e2}
+/* ── TOP BAR ── */
+.top-bar{background:var(–surface);border-bottom:1px solid var(–border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(67,97,238,0.07)}
+.top-left{display:flex;align-items:center;gap:12px}
+.top-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(–accent),var(–accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.top-logo{font-weight:800;font-size:1.3rem;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.top-right{display:flex;align-items:center;gap:10px}
+.welcome-badge{background:linear-gradient(135deg,rgba(67,97,238,0.1),rgba(124,58,237,0.1));border:1px solid rgba(67,97,238,0.2);padding:8px 14px;border-radius:50px;font-size:13px;font-weight:700;color:var(–accent);display:flex;align-items:center;gap:6px}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(–accent),var(–accent2));display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0}
+.logout-btn{background:none;border:1.5px solid var(–border);color:var(–muted);padding:7px 14px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(–font);transition:all .2s}
+.logout-btn:hover{border-color:var(–red);color:var(–red);background:#fff5f5}
 
-/* NAV */
-.nav-tabs{background:var(–surface);border-bottom:2px solid var(–border);padding:0 16px;display:flex;gap:4px;overflow-x:auto}
-.nav-tab{padding:16px 20px;border:none;background:transparent;color:var(–muted);font-family:var(–font-main);font-weight:700;font-size:15px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+/* ── NAV ── */
+.nav-tabs{background:var(–surface);border-bottom:1px solid var(–border);padding:0 16px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{padding:15px 18px;border:none;background:transparent;color:var(–muted);font-family:var(–font);font-weight:700;font-size:15px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
 .nav-tab.active{color:var(–accent);border-bottom-color:var(–accent)}
 .nav-tab:hover{color:var(–accent)}
 
-/* PANELS */
-.panel{display:none;padding:24px 16px;max-width:900px;margin:0 auto;width:100%}
+/* ── PANELS ── */
+.panel{display:none;padding:24px 16px 40px;max-width:900px;margin:0 auto;width:100%;animation:fadeUp .3s ease}
 .panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* CARDS */
-.card{background:var(–surface);border:2px solid var(–border);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:var(–shadow)}
-.card-title{font-size:18px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:var(–text)}
-.card-title .icon{width:36px;height:36px;background:linear-gradient(135deg,rgba(67,97,238,0.15),rgba(124,58,237,0.15));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+/* ── WELCOME BANNER ── */
+.welcome-banner{background:linear-gradient(135deg,var(–accent),var(–accent2));border-radius:20px;padding:24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden}
+.welcome-banner::after{content:‘✨’;position:absolute;right:20px;bottom:-10px;font-size:80px;opacity:.15}
+.welcome-hello{font-size:14px;font-weight:600;opacity:.85;margin-bottom:4px}
+.welcome-name{font-size:1.6rem;font-weight:800;margin-bottom:6px}
+.welcome-sub{font-size:13px;opacity:.8;font-family:var(–font-mono)}
 
-/* CHIPS */
-.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:50px;font-size:12px;font-family:var(–font-mono);font-weight:700}
-.chip-green{background:#d1fae5;color:var(–green);border:2px solid #a7f3d0}
-.chip-red{background:#fee2e2;color:var(–red);border:2px solid #fecaca}
-.chip-yellow{background:#fef3c7;color:var(–yellow);border:2px solid #fde68a}
-.chip-blue{background:#e0e7ff;color:var(–accent);border:2px solid #c7d2fe}
+/* ── ATTENDANCE WARNING ── */
+.att-warning{background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid var(–yellow);border-radius:16px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px}
+.att-warning-icon{font-size:26px;flex-shrink:0}
+.att-warning-title{font-weight:800;color:#92400e;font-size:15px;margin-bottom:3px}
+.att-warning-text{font-size:13px;color:#b45309}
+.att-danger{background:linear-gradient(135deg,#fee2e2,#fecaca);border-color:var(–red)}
+.att-danger .att-warning-title{color:#991b1b}
+.att-danger .att-warning-text{color:#b91c1c}
 
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
-.stat-card{background:var(–surface);border:2px solid var(–border);border-radius:18px;padding:24px;text-align:center;box-shadow:var(–shadow)}
-.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.stat-label{font-size:12px;color:var(–muted);margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+/* ── CARDS ── */
+.card{background:var(–surface);border:1px solid var(–border);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:var(–shadow);transition:box-shadow .2s}
+.card:hover{box-shadow:var(–shadow-md)}
+.card-title{font-size:17px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;gap:10px;color:var(–text)}
+.card-icon{width:36px;height:36px;background:linear-gradient(135deg,rgba(67,97,238,0.12),rgba(124,58,237,0.12));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 
-/* ATTENDANCE CIRCLE */
-.att-circle-wrap{display:flex;justify-content:center;margin:20px 0}
+/* ── CHIPS ── */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;font-size:11px;font-family:var(–font-mono);font-weight:700;letter-spacing:.03em}
+.chip-green{background:#d1fae5;color:var(–green);border:1.5px solid #a7f3d0}
+.chip-red{background:#fee2e2;color:var(–red);border:1.5px solid #fecaca}
+.chip-yellow{background:#fef3c7;color:var(–yellow);border:1.5px solid #fde68a}
+.chip-blue{background:#e0e7ff;color:var(–accent);border:1.5px solid #c7d2fe}
+.chip-orange{background:#fff7ed;color:var(–orange);border:1.5px solid #fed7aa}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(–surface);border:1px solid var(–border);border-radius:18px;padding:22px 16px;text-align:center;box-shadow:var(–shadow);transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(–shadow-md)}
+.stat-icon{font-size:22px;margin-bottom:8px}
+.stat-num{font-size:2.2rem;font-weight:800;font-family:var(–font-mono);background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.stat-label{font-size:11px;color:var(–muted);margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── ATTENDANCE CIRCLE ── */
+.att-circle-wrap{display:flex;justify-content:center;margin:16px 0}
 .att-circle{position:relative;width:160px;height:160px}
 .att-circle svg{transform:rotate(-90deg)}
 .att-circle-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .att-pct{font-size:2.2rem;font-weight:800;font-family:var(–font-mono);color:var(–accent)}
-.att-lbl{font-size:11px;color:var(–muted);font-family:var(–font-mono);font-weight:700}
+.att-lbl{font-size:11px;color:var(–muted);font-family:var(–font-mono);font-weight:700;margin-top:2px}
 
-/* CLASS CARDS */
-.class-grid{display:grid;gap:16px}
-.class-card{background:var(–surface2);border:2px solid var(–border);border-radius:16px;padding:20px;transition:all .2s}
-.class-card:hover{border-color:var(–accent);box-shadow:var(–shadow)}
-.class-name{font-weight:800;font-size:18px;margin-bottom:6px;color:var(–text)}
-.class-meta{font-size:13px;color:var(–muted);font-family:var(–font-mono);margin-bottom:14px}
-.class-progress{height:6px;background:var(–border);border-radius:6px;overflow:hidden}
-.class-progress-fill{height:100%;border-radius:6px;transition:width .5s ease}
+/* ── CLASS CARDS ── */
+.class-grid{display:grid;gap:14px}
+.class-card{background:var(–surface2);border:1.5px solid var(–border);border-radius:16px;padding:20px;transition:all .2s;cursor:default}
+.class-card:hover{border-color:var(–accent);box-shadow:var(–shadow);transform:translateY(-1px)}
+.class-name{font-weight:800;font-size:17px;margin-bottom:4px;color:var(–text)}
+.class-meta{font-size:12px;color:var(–muted);font-family:var(–font-mono);margin-bottom:12px}
+.class-progress{height:7px;background:var(–border);border-radius:7px;overflow:hidden;margin-top:10px}
+.class-progress-fill{height:100%;border-radius:7px;transition:width .7s cubic-bezier(.34,1.56,.64,1)}
 .class-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 
-/* PIN PAD */
+/* ── PIN PAD ── */
 .pin-pad{display:flex;flex-direction:column;align-items:center;gap:20px}
-.pin-display{display:flex;gap:16px;margin-bottom:8px}
-.pin-dot{width:18px;height:18px;border-radius:50%;border:3px solid var(–border);transition:all .2s}
-.pin-dot.filled{background:var(–accent);border-color:var(–accent)}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:260px}
-.pin-btn{padding:22px;background:var(–surface);border:2px solid var(–border);border-radius:14px;color:var(–text);font-size:22px;font-family:var(–font-mono);font-weight:700;cursor:pointer;transition:all .15s;text-align:center;box-shadow:var(–shadow)}
-.pin-btn:hover{background:var(–accent);color:#fff;border-color:var(–accent)}
-.pin-btn:active{transform:scale(0.95)}
+.pin-display{display:flex;gap:18px;margin:4px 0}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2.5px solid var(–border);transition:all .25s cubic-bezier(.34,1.56,.64,1)}
+.pin-dot.filled{background:var(–accent);border-color:var(–accent);transform:scale(1.15)}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:264px}
+.pin-btn{padding:22px;background:var(–surface);border:1.5px solid var(–border);border-radius:16px;color:var(–text);font-size:22px;font-family:var(–font-mono);font-weight:700;cursor:pointer;transition:all .15s;text-align:center;box-shadow:0 2px 8px rgba(67,97,238,0.07)}
+.pin-btn:hover{background:var(–accent);color:#fff;border-color:var(–accent);transform:scale(1.04)}
+.pin-btn:active{transform:scale(0.94)}
 
-/* TABLE */
+/* ── TABLE ── */
 .data-table{width:100%;border-collapse:collapse}
-.data-table th{padding:14px 16px;text-align:left;font-size:12px;font-weight:800;color:var(–muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(–border);background:var(–bg)}
+.data-table th{padding:13px 16px;text-align:left;font-size:11px;font-weight:800;color:var(–muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(–border);background:var(–bg)}
 .data-table td{padding:14px 16px;border-bottom:1px solid var(–border);font-size:15px;font-weight:500}
 .data-table tr:last-child td{border-bottom:none}
 .data-table tr:hover td{background:var(–bg)}
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(–border)}
 
-/* GEOFENCE */
-.geo-visual{background:var(–bg);border:2px solid var(–border);border-radius:16px;padding:24px;text-align:center}
+/* ── GEOFENCE ── */
+.geo-visual{background:var(–bg);border:1.5px solid var(–border);border-radius:16px;padding:24px;text-align:center}
 .geo-rings{position:relative;width:180px;height:180px;margin:0 auto}
 .geo-ring{position:absolute;border-radius:50%;border:2px solid;animation:pulse-ring 3s ease-in-out infinite}
-.geo-ring:nth-child(1){inset:0;border-color:rgba(67,97,238,0.3);animation-delay:0s}
-.geo-ring:nth-child(2){inset:20px;border-color:rgba(67,97,238,0.2);animation-delay:.5s}
-.geo-ring:nth-child(3){inset:40px;border-color:rgba(67,97,238,0.15);animation-delay:1s}
-.geo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:var(–accent);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 20px rgba(67,97,238,0.4)}
-@keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.03);opacity:.4}}
+.geo-ring:nth-child(1){inset:0;border-color:rgba(67,97,238,.3);animation-delay:0s}
+.geo-ring:nth-child(2){inset:22px;border-color:rgba(67,97,238,.2);animation-delay:.5s}
+.geo-ring:nth-child(3){inset:44px;border-color:rgba(67,97,238,.15);animation-delay:1s}
+.geo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:var(–accent);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 24px rgba(67,97,238,.45)}
+@keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.04);opacity:.4}}
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
-.modal{background:var(–surface);border:2px solid var(–border);border-radius:24px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(–shadow-lg)}
-.modal-title{font-size:1.4rem;font-weight:800;margin-bottom:24px;color:var(–text)}
-.modal-close{float:right;background:var(–bg);border:2px solid var(–border);color:var(–muted);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(–surface);border:1px solid var(–border);border-radius:24px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(–shadow-lg);animation:modalUp .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modalUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-size:1.3rem;font-weight:800;color:var(–text)}
+.modal-close{background:var(–bg);border:1.5px solid var(–border);color:var(–muted);cursor:pointer;font-size:16px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.modal-close:hover{background:#fee2e2;border-color:var(–red);color:var(–red)}
 
-/* SESSION BANNER */
-.session-banner{background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:2px solid #a7f3d0;border-radius:16px;padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
-.session-pulse{width:14px;height:14px;border-radius:50%;background:var(–green);box-shadow:0 0 0 0 rgba(5,150,105,0.4);animation:pulse-dot 2s infinite;flex-shrink:0}
-@keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(5,150,105,0.4)}70%{box-shadow:0 0 0 12px rgba(5,150,105,0)}100%{box-shadow:0 0 0 0 rgba(5,150,105,0)}}
+/* ── SESSION BANNER ── */
+.session-banner{background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:1.5px solid #a7f3d0;border-radius:16px;padding:18px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px}
+.session-pulse{width:12px;height:12px;border-radius:50%;background:var(–green);box-shadow:0 0 0 0 rgba(5,150,105,.4);animation:pulse-dot 2s infinite;flex-shrink:0}
+@keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(5,150,105,.4)}70%{box-shadow:0 0 0 10px rgba(5,150,105,0)}100%{box-shadow:0 0 0 0 rgba(5,150,105,0)}}
 
-.divider{height:2px;background:var(–border);margin:20px 0}
-.empty-state{text-align:center;padding:48px 20px;color:var(–muted);font-size:15px}
-.empty-state .icon{font-size:3rem;margin-bottom:14px;display:block}
+.empty-state{text-align:center;padding:44px 20px;color:var(–muted);font-size:15px}
+.empty-state .icon{font-size:2.8rem;margin-bottom:12px;display:block}
+.empty-state p{font-size:14px;margin-top:6px;line-height:1.6}
 .download-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.divider{height:1px;background:var(–border);margin:20px 0}
 
-/* CONFIRM DIALOG */
-.confirm-box{background:#fff3f3;border:2px solid #fecaca;border-radius:16px;padding:20px;margin-top:16px}
-.confirm-box p{font-size:15px;color:var(–text);margin-bottom:14px;font-weight:600}
-.confirm-actions{display:flex;gap:10px}
+/* ── PROFILE CARD ── */
+.profile-card{background:linear-gradient(135deg,var(–accent),var(–accent2));border-radius:18px;padding:24px;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:18px}
+.profile-avatar{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;border:3px solid rgba(255,255,255,.4)}
+.profile-name{font-size:1.3rem;font-weight:800;margin-bottom:4px}
+.profile-role{font-size:12px;opacity:.85;font-family:var(–font-mono)}
+.profile-email{font-size:13px;opacity:.75;margin-top:2px}
 
 @media(max-width:600px){
 .stats-grid{grid-template-columns:repeat(2,1fr)}
-.panel{padding:16px 12px}
-.auth-card{padding:28px 20px}
+.panel{padding:16px 12px 40px}
+.auth-card{padding:24px 18px 28px}
 .pin-grid{width:240px}
-.top-user{gap:6px}
-.user-badge{padding:6px 10px;font-size:12px}
+.top-right{gap:7px}
+.welcome-badge{display:none}
+.college-banner{padding:16px 20px}
 }
 </style>
 
@@ -197,35 +260,83 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 <!-- LOADING -->
 
 <div id="loading-screen">
-  <div class="loader-logo">AttendX</div>
-  <div class="loader-bar"><div class="loader-fill"></div></div>
-  <div style="font-size:14px;color:var(--muted);font-family:var(--font-mono)">Connecting to Firebase...</div>
+  <div class="loader-brand">
+    <div class="loader-icon">🎓</div>
+    <div class="loader-title">AttendX</div>
+    <div class="loader-sub">Smart Attendance System</div>
+  </div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
 </div>
 
 <div id="toast-container"></div>
 
-<!-- AUTH -->
+<!-- ═══════════════ AUTH ═══════════════ -->
 
 <div id="auth-screen" class="hidden">
-  <div class="auth-card">
-    <div class="auth-logo">AttendX</div>
-    <div class="auth-sub">// Smart Attendance System</div>
-    <div class="role-tabs">
-      <button class="role-tab active" onclick="switchRole('student')">🎒 Student</button>
-      <button class="role-tab" onclick="switchRole('admin')">🎓 Teacher</button>
+  <div class="auth-wrap">
+    <div class="college-banner">
+      <div class="college-name-display" id="auth-college-name">Your College</div>
+      <div class="college-title">Attendance Management System</div>
     </div>
-    <div id="student-auth">
-      <div class="form-group"><label>Email Address</label><input type="email" id="student-email" placeholder="you@college.edu"/></div>
-      <div class="form-group"><label>Password</label><input type="password" id="student-password" placeholder="••••••••"/></div>
-      <button class="btn btn-primary" onclick="loginStudent()">Sign In</button>
-      <button class="link-btn" onclick="showRegister()">Don't have an account? Register here</button>
+    <div class="auth-card">
+      <div class="auth-logo-row">
+        <div class="auth-logo-icon">🎓</div>
+        <div class="auth-logo-text">AttendX</div>
+      </div>
+      <div class="auth-tagline">// Sign in to continue</div>
+
+```
+  <div class="role-tabs">
+    <button class="role-tab active" onclick="switchRole('student')">🎒 Student</button>
+    <button class="role-tab" onclick="switchRole('admin')">📋 Teacher</button>
+  </div>
+
+  <!-- Student Login -->
+  <div id="student-auth">
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="input-icon">📧</span>
+        <input type="email" id="student-email" placeholder="you@college.edu"/>
+      </div>
     </div>
-    <div id="admin-auth" class="hidden">
-      <div class="form-group"><label>Teacher Email</label><input type="email" id="admin-email" placeholder="teacher@college.edu"/></div>
-      <div class="form-group"><label>Password</label><input type="password" id="admin-password" placeholder="••••••••"/></div>
-      <button class="btn btn-primary" onclick="loginAdmin()">Teacher Sign In</button>
-      <button class="link-btn" onclick="showAdminRegister()">Register as Teacher</button>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="student-password" placeholder="Enter your password"/>
+      </div>
     </div>
+    <button class="btn btn-primary" onclick="loginStudent()">Sign In →</button>
+    <button class="link-btn" onclick="showRegister()">Don't have an account? Register here</button>
+  </div>
+
+  <!-- Teacher Login -->
+  <div id="admin-auth" class="hidden">
+    <div class="form-group">
+      <label>Teacher Email</label>
+      <div class="input-wrap">
+        <span class="input-icon">📧</span>
+        <input type="email" id="admin-email" placeholder="teacher@college.edu"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="admin-password" placeholder="Enter your password"/>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="loginAdmin()">Teacher Sign In →</button>
+    <button class="link-btn" onclick="showAdminRegister()">Register as Teacher</button>
+  </div>
+</div>
+```
+
   </div>
 </div>
 
@@ -233,12 +344,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 
 <div id="register-modal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('register-modal')">✕</button>
-    <div class="modal-title">Create Student Account</div>
-    <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="John Doe"/></div>
-    <div class="form-group"><label>Student ID</label><input type="text" id="reg-sid" placeholder="STU2024001"/></div>
-    <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@college.edu"/></div>
-    <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 6 characters"/></div>
+    <div class="modal-header">
+      <div class="modal-title">Create Student Account</div>
+      <button class="modal-close" onclick="closeModal('register-modal')">✕</button>
+    </div>
+    <div class="form-group"><label>Full Name</label><div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="reg-name" placeholder="John Doe"/></div></div>
+    <div class="form-group"><label>Student ID</label><div class="input-wrap"><span class="input-icon">🪪</span><input type="text" id="reg-sid" placeholder="STU2024001"/></div></div>
+    <div class="form-group"><label>Email</label><div class="input-wrap"><span class="input-icon">📧</span><input type="email" id="reg-email" placeholder="you@college.edu"/></div></div>
+    <div class="form-group"><label>Password</label><div class="input-wrap"><span class="input-icon">🔒</span><input type="password" id="reg-password" placeholder="Min 6 characters"/></div></div>
     <button class="btn btn-primary" onclick="registerStudent()">Create Account</button>
   </div>
 </div>
@@ -247,13 +360,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 
 <div id="admin-register-modal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('admin-register-modal')">✕</button>
-    <div class="modal-title">Register as Teacher</div>
-    <div class="form-group"><label>Full Name</label><input type="text" id="areg-name" placeholder="Prof. Jane Smith"/></div>
-    <div class="form-group"><label>Department</label><input type="text" id="areg-dept" placeholder="Computer Science"/></div>
-    <div class="form-group"><label>Email</label><input type="email" id="areg-email" placeholder="teacher@college.edu"/></div>
-    <div class="form-group"><label>Password</label><input type="password" id="areg-password" placeholder="Min 6 characters"/></div>
-    <div class="form-group"><label>Admin Access Code</label><input type="text" id="areg-code" placeholder="Provided by college admin"/></div>
+    <div class="modal-header">
+      <div class="modal-title">Register as Teacher</div>
+      <button class="modal-close" onclick="closeModal('admin-register-modal')">✕</button>
+    </div>
+    <div class="form-group"><label>Full Name</label><div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="areg-name" placeholder="Prof. Jane Smith"/></div></div>
+    <div class="form-group"><label>Department</label><div class="input-wrap"><span class="input-icon">🏫</span><input type="text" id="areg-dept" placeholder="Computer Science"/></div></div>
+    <div class="form-group"><label>Email</label><div class="input-wrap"><span class="input-icon">📧</span><input type="email" id="areg-email" placeholder="teacher@college.edu"/></div></div>
+    <div class="form-group"><label>Password</label><div class="input-wrap"><span class="input-icon">🔒</span><input type="password" id="areg-password" placeholder="Min 6 characters"/></div></div>
+    <div class="form-group"><label>Admin Access Code</label><div class="input-wrap"><span class="input-icon">🔑</span><input type="text" id="areg-code" placeholder="Provided by college admin"/></div></div>
     <button class="btn btn-primary" onclick="registerAdmin()">Register Teacher</button>
   </div>
 </div>
@@ -262,111 +377,178 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 
 <div id="edit-class-modal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('edit-class-modal')">✕</button>
-    <div class="modal-title">✏️ Edit Class</div>
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Class</div>
+      <button class="modal-close" onclick="closeModal('edit-class-modal')">✕</button>
+    </div>
     <input type="hidden" id="edit-class-id"/>
-    <div class="form-group"><label>Class Name</label><input type="text" id="edit-class-name" placeholder="e.g. Data Structures"/></div>
-    <div class="form-group"><label>Subject Code</label><input type="text" id="edit-class-code" placeholder="e.g. CS301"/></div>
-    <div class="form-group"><label>Schedule</label><input type="text" id="edit-class-schedule" placeholder="Mon, Wed, Fri"/></div>
-    <div class="form-group"><label>Time</label><input type="text" id="edit-class-time" placeholder="10:00 AM - 11:00 AM"/></div>
-    <div class="form-group"><label>Room</label><input type="text" id="edit-class-room" placeholder="Room B-204"/></div>
-    <div class="form-group"><label>Total Sessions</label><input type="number" id="edit-class-total" placeholder="40" min="1"/></div>
+    <div class="form-group"><label>Class Name</label><input type="text" id="edit-class-name" placeholder="e.g. Data Structures" class="no-icon"/></div>
+    <div class="form-group"><label>Subject Code</label><input type="text" id="edit-class-code" placeholder="e.g. CS301" class="no-icon"/></div>
+    <div class="form-group"><label>Schedule</label><input type="text" id="edit-class-schedule" placeholder="Mon, Wed, Fri" class="no-icon"/></div>
+    <div class="form-group"><label>Time</label><input type="text" id="edit-class-time" placeholder="10:00 AM - 11:00 AM" class="no-icon"/></div>
+    <div class="form-group"><label>Room</label><input type="text" id="edit-class-room" placeholder="Room B-204" class="no-icon"/></div>
+    <div class="form-group"><label>Total Sessions</label><input type="number" id="edit-class-total" placeholder="40" min="1" class="no-icon"/></div>
     <button class="btn btn-primary" onclick="saveEditClass()">Save Changes</button>
   </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- SESSION DETAIL MODAL -->
+
+<div id="session-detail-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="sdm-title">Session Details</div>
+      <button class="modal-close" onclick="closeModal('session-detail-modal')">✕</button>
+    </div>
+    <div id="sdm-content"></div>
+  </div>
+</div>
+
+<!-- ENROLL MODAL -->
+
+<div id="enroll-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👥 Manage Students</div>
+      <button class="modal-close" onclick="closeModal('enroll-modal')">✕</button>
+    </div>
+    <div id="enroll-class-name" style="font-size:14px;color:var(--muted);margin-bottom:16px;font-weight:700"></div>
+    <div id="enrollable-students"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
 
 <div id="main-app" class="hidden">
+
+  <!-- TOP BAR -->
+
   <div class="top-bar">
-    <div class="top-logo">AttendX</div>
-    <div class="top-user">
-      <div class="user-badge" id="top-role-badge">Student</div>
-      <div class="user-badge" id="top-user-name" style="color:var(--text)">...</div>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+    <div class="top-left">
+      <div class="top-logo-icon">🎓</div>
+      <div class="top-logo">AttendX</div>
+    </div>
+    <div class="top-right">
+      <div class="welcome-badge" id="top-role-badge">Student</div>
+      <div class="avatar" id="top-avatar">?</div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </div>
 
   <!-- STUDENT NAV -->
 
   <div class="nav-tabs" id="student-nav">
-    <button class="nav-tab active" onclick="showPanel('dashboard','student-nav')">Dashboard</button>
-    <button class="nav-tab" onclick="showPanel('my-classes','student-nav')">My Classes</button>
-    <button class="nav-tab" onclick="showPanel('check-in','student-nav')">Check In/Out</button>
-    <button class="nav-tab" onclick="showPanel('attendance','student-nav')">My Records</button>
+    <button class="nav-tab active" onclick="showPanel('dashboard','student-nav')">🏠 Home</button>
+    <button class="nav-tab" onclick="showPanel('my-classes','student-nav')">📚 Classes</button>
+    <button class="nav-tab" onclick="showPanel('check-in','student-nav')">✅ Check In</button>
+    <button class="nav-tab" onclick="showPanel('attendance','student-nav')">📋 Records</button>
   </div>
 
   <!-- ADMIN NAV -->
 
   <div class="nav-tabs hidden" id="admin-nav">
-    <button class="nav-tab active" onclick="showPanel('admin-dashboard','admin-nav')">Dashboard</button>
-    <button class="nav-tab" onclick="showPanel('manage-classes','admin-nav')">Classes</button>
-    <button class="nav-tab" onclick="showPanel('sessions','admin-nav')">Sessions</button>
-    <button class="nav-tab" onclick="showPanel('students','admin-nav')">Students</button>
-    <button class="nav-tab" onclick="showPanel('reports','admin-nav')">Reports</button>
-    <button class="nav-tab" onclick="showPanel('settings','admin-nav')">Settings</button>
+    <button class="nav-tab active" onclick="showPanel('admin-dashboard','admin-nav')">🏠 Dashboard</button>
+    <button class="nav-tab" onclick="showPanel('manage-classes','admin-nav')">📚 Classes</button>
+    <button class="nav-tab" onclick="showPanel('sessions','admin-nav')">▶ Sessions</button>
+    <button class="nav-tab" onclick="showPanel('students','admin-nav')">👥 Students</button>
+    <button class="nav-tab" onclick="showPanel('reports','admin-nav')">📊 Reports</button>
+    <button class="nav-tab" onclick="showPanel('settings','admin-nav')">⚙️ Settings</button>
   </div>
 
-  <!-- ===== STUDENT PANELS ===== -->
+  <!-- ════ STUDENT PANELS ════ -->
 
   <div class="panel active" id="panel-dashboard">
-    <div class="stats-grid" id="student-stats">
-      <div class="stat-card"><div class="stat-num" id="s-total-classes">–</div><div class="stat-label">Classes</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-attended">–</div><div class="stat-label">Attended</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-percentage">–%</div><div class="stat-label">Attendance</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-streak">–</div><div class="stat-label">Day Streak</div></div>
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div class="welcome-hello">Good to see you back! 👋</div>
+      <div class="welcome-name" id="s-welcome-name">Student</div>
+      <div class="welcome-sub" id="s-welcome-sub">Here's your attendance overview</div>
     </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">📊</div>Overall Attendance</div>
-      <div class="att-circle-wrap">
-        <div class="att-circle">
-          <svg viewBox="0 0 120 120" width="160" height="160">
-            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="12"/>
-            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" stroke-width="12"
-              stroke-dasharray="314" id="att-circle-progress" stroke-dashoffset="314"
-              stroke-linecap="round" style="transition:stroke-dashoffset 1s ease"/>
-          </svg>
-          <div class="att-circle-text">
-            <div class="att-pct" id="att-circle-pct">0%</div>
-            <div class="att-lbl">OVERALL</div>
-          </div>
-        </div>
+
+```
+<!-- Attendance Warning (shows if below 75%) -->
+<div id="att-warning-box" class="att-warning hidden">
+  <div class="att-warning-icon">⚠️</div>
+  <div>
+    <div class="att-warning-title" id="att-warning-title">Low Attendance Warning</div>
+    <div class="att-warning-text" id="att-warning-text">Your attendance is below 75%. Please attend more classes.</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-num" id="s-total-classes">–</div><div class="stat-label">Classes</div></div>
+  <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-num" id="s-attended">–</div><div class="stat-label">Attended</div></div>
+  <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-num" id="s-percentage">–%</div><div class="stat-label">Attendance</div></div>
+  <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-num" id="s-streak">–</div><div class="stat-label">Day Streak</div></div>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-icon">📊</div>Overall Attendance</div>
+  <div class="att-circle-wrap">
+    <div class="att-circle">
+      <svg viewBox="0 0 120 120" width="160" height="160">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="12"/>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" stroke-width="12"
+          stroke-dasharray="314" id="att-circle-progress" stroke-dashoffset="314"
+          stroke-linecap="round" style="transition:stroke-dashoffset 1.2s cubic-bezier(.34,1.56,.64,1)"/>
+      </svg>
+      <div class="att-circle-text">
+        <div class="att-pct" id="att-circle-pct">0%</div>
+        <div class="att-lbl">OVERALL</div>
       </div>
-      <div style="display:flex;justify-content:center;gap:32px">
-        <div style="text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--green)" id="s-present-count">0</div><div style="font-size:13px;color:var(--muted);font-weight:600">Present</div></div>
-        <div style="text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--red)" id="s-absent-count">0</div><div style="font-size:13px;color:var(--muted);font-weight:600">Absent</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">🔔</div>Active Sessions Now</div>
-      <div id="active-sessions-list"><div class="empty-state"><span class="icon">📭</span>No active sessions right now</div></div>
     </div>
   </div>
+  <div style="display:flex;justify-content:center;gap:40px;margin-top:8px">
+    <div style="text-align:center">
+      <div style="font-size:1.8rem;font-weight:800;color:var(--green);font-family:var(--font-mono)" id="s-present-count">0</div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">Present</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:1.8rem;font-weight:800;color:var(--red);font-family:var(--font-mono)" id="s-absent-count">0</div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">Absent</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-icon">⚡</div>Live Sessions</div>
+  <div id="active-sessions-list"><div class="empty-state"><span class="icon">📭</span>No active sessions right now</div></div>
+</div>
+```
+
+  </div>
+
+  <!-- MY CLASSES -->
 
   <div class="panel" id="panel-my-classes">
     <div class="card">
-      <div class="card-title"><div class="icon">📚</div>My Enrolled Classes</div>
-      <div id="student-classes-list" class="class-grid"><div class="empty-state"><span class="icon">📚</span>Not enrolled in any classes yet.<br>Ask your teacher to enroll you.</div></div>
+      <div class="card-title"><div class="card-icon">📚</div>My Enrolled Classes</div>
+      <div id="student-classes-list" class="class-grid">
+        <div class="empty-state"><span class="icon">📚</span>Not enrolled in any classes yet.<p>Ask your teacher to enroll you.</p></div>
+      </div>
     </div>
   </div>
 
+  <!-- CHECK IN/OUT -->
+
   <div class="panel" id="panel-check-in">
     <div id="checkin-geo-status" class="card" style="display:none">
-      <div class="card-title"><div class="icon">📍</div>Location Verification</div>
+      <div class="card-title"><div class="card-icon">📍</div>Location Verification</div>
       <div class="geo-visual">
         <div class="geo-rings">
           <div class="geo-ring"></div><div class="geo-ring"></div><div class="geo-ring"></div>
           <div class="geo-center">🏫</div>
-          <div id="student-geo-dot" style="position:absolute;width:14px;height:14px;border-radius:50%;background:var(--yellow);border:3px solid #fff;top:30%;left:30%;box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:all 1s ease"></div>
+          <div id="student-geo-dot" style="position:absolute;width:14px;height:14px;border-radius:50%;background:var(--yellow);border:3px solid #fff;top:30%;left:30%;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:all 1s ease"></div>
         </div>
         <div id="geo-status-text" style="margin-top:16px;font-family:var(--font-mono);font-size:14px;color:var(--muted)">Checking location...</div>
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">🔐</div>Check In / Check Out</div>
+      <div class="card-title"><div class="card-icon">🔐</div>Check In / Check Out</div>
       <div id="checkin-session-select">
-        <div class="form-group"><label>Select Active Session</label>
-          <select id="session-select"><option value="">-- Select a session --</option></select>
+        <div class="form-group">
+          <label>Select Active Session</label>
+          <select id="session-select" class="no-icon"><option value="">-- Select a session --</option></select>
         </div>
         <button class="btn btn-secondary" onclick="loadSessionForCheckin()" style="margin-bottom:16px">Load Session</button>
       </div>
@@ -391,19 +573,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
             <button class="pin-btn" onclick="pinPress('7')">7</button>
             <button class="pin-btn" onclick="pinPress('8')">8</button>
             <button class="pin-btn" onclick="pinPress('9')">9</button>
-            <button class="pin-btn" onclick="pinPress('clear')" style="font-size:13px">CLR</button>
+            <button class="pin-btn" onclick="pinPress('clear')" style="font-size:12px">CLR</button>
             <button class="pin-btn" onclick="pinPress('0')">0</button>
             <button class="pin-btn" onclick="pinPress('back')">⌫</button>
           </div>
-          <button class="btn btn-primary" style="width:260px" onclick="submitPin()">✓ Submit PIN</button>
+          <button class="btn btn-primary" style="width:264px" onclick="submitPin()">✓ Submit PIN</button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- ATTENDANCE LOG -->
+
   <div class="panel" id="panel-attendance">
     <div class="card">
-      <div class="card-title"><div class="icon">📋</div>My Attendance History</div>
+      <div class="card-title"><div class="card-icon">📋</div>My Attendance History</div>
       <div id="student-attendance-table"><div class="empty-state"><span class="icon">📋</span>No records yet</div></div>
     </div>
     <div class="download-row">
@@ -412,76 +596,91 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     </div>
   </div>
 
-  <!-- ===== ADMIN PANELS ===== -->
+  <!-- ════ ADMIN PANELS ════ -->
+
+  <!-- ADMIN DASHBOARD -->
 
   <div class="panel" id="panel-admin-dashboard">
+    <div class="welcome-banner">
+      <div class="welcome-hello">Welcome back, Teacher! 📋</div>
+      <div class="welcome-name" id="a-welcome-name">Teacher</div>
+      <div class="welcome-sub" id="a-welcome-sub">Here's your class overview</div>
+    </div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num" id="a-total-students">–</div><div class="stat-label">Students</div></div>
-      <div class="stat-card"><div class="stat-num" id="a-total-classes">–</div><div class="stat-label">Classes</div></div>
-      <div class="stat-card"><div class="stat-num" id="a-active-sessions">–</div><div class="stat-label">Active Now</div></div>
-      <div class="stat-card"><div class="stat-num" id="a-today-att">–%</div><div class="stat-label">Today's Att.</div></div>
+      <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-num" id="a-total-students">–</div><div class="stat-label">Students</div></div>
+      <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-num" id="a-total-classes">–</div><div class="stat-label">Classes</div></div>
+      <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-num" id="a-active-sessions">–</div><div class="stat-label">Live Now</div></div>
+      <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-num" id="a-today-att">–%</div><div class="stat-label">Today's Att.</div></div>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">⚡</div>Active Sessions</div>
+      <div class="card-title"><div class="card-icon">⚡</div>Active Sessions</div>
       <div id="admin-active-sessions"><div class="empty-state"><span class="icon">📭</span>No active sessions</div></div>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">🕐</div>Recent Activity</div>
+      <div class="card-title"><div class="card-icon">🕐</div>Recent Activity</div>
       <div id="admin-recent-activity"><div class="empty-state"><span class="icon">🕐</span>No recent activity</div></div>
     </div>
   </div>
 
+  <!-- MANAGE CLASSES -->
+
   <div class="panel" id="panel-manage-classes">
     <div class="card">
-      <div class="card-title"><div class="icon">➕</div>Create New Class</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="form-group"><label>Class Name</label><input type="text" id="new-class-name" placeholder="e.g. Data Structures"/></div>
-        <div class="form-group"><label>Subject Code</label><input type="text" id="new-class-code" placeholder="e.g. CS301"/></div>
-        <div class="form-group"><label>Schedule</label><input type="text" id="new-class-schedule" placeholder="Mon, Wed, Fri"/></div>
-        <div class="form-group"><label>Time</label><input type="text" id="new-class-time" placeholder="10:00 AM - 11:00 AM"/></div>
-        <div class="form-group"><label>Room</label><input type="text" id="new-class-room" placeholder="Room B-204"/></div>
-        <div class="form-group"><label>Total Sessions</label><input type="number" id="new-class-total" placeholder="40" min="1"/></div>
+      <div class="card-title"><div class="card-icon">➕</div>Create New Class</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label>Class Name</label><input type="text" id="new-class-name" placeholder="e.g. Data Structures" class="no-icon"/></div>
+        <div class="form-group"><label>Subject Code</label><input type="text" id="new-class-code" placeholder="e.g. CS301" class="no-icon"/></div>
+        <div class="form-group"><label>Schedule</label><input type="text" id="new-class-schedule" placeholder="Mon, Wed, Fri" class="no-icon"/></div>
+        <div class="form-group"><label>Time</label><input type="text" id="new-class-time" placeholder="10:00 AM - 11:00 AM" class="no-icon"/></div>
+        <div class="form-group"><label>Room</label><input type="text" id="new-class-room" placeholder="Room B-204" class="no-icon"/></div>
+        <div class="form-group"><label>Total Sessions</label><input type="number" id="new-class-total" placeholder="40" min="1" class="no-icon"/></div>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="createClass()">➕ Create Class</button>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">📚</div>All Classes</div>
-      <div id="admin-classes-list" class="class-grid"><div class="empty-state"><span class="icon">📚</span>No classes yet</div></div>
+      <div class="card-title"><div class="card-icon">📚</div>All Classes</div>
+      <div id="admin-classes-list" class="class-grid"><div class="empty-state"><span class="icon">📚</span>No classes yet. Create your first!</div></div>
     </div>
   </div>
 
+  <!-- SESSIONS -->
+
   <div class="panel" id="panel-sessions">
     <div class="card">
-      <div class="card-title"><div class="icon">▶</div>Start New Session</div>
-      <div class="form-group"><label>Select Class</label><select id="session-class-select"><option value="">-- Select class --</option></select></div>
-      <div class="form-group"><label>Geofence Radius (meters)</label><input type="number" id="session-geo-radius" value="100" min="10" max="1000"/></div>
-      <div style="background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;font-size:14px;color:var(--muted);font-weight:600">
-        📍 Your current GPS location will be used as the class location.<br>
-        🔑 Two random PINs will be auto-generated.
+      <div class="card-title"><div class="card-icon">▶</div>Start New Session</div>
+      <div class="form-group"><label>Select Class</label><select id="session-class-select" class="no-icon"><option value="">-- Select class --</option></select></div>
+      <div class="form-group"><label>Geofence Radius (metres)</label><input type="number" id="session-geo-radius" value="100" min="10" max="1000" class="no-icon"/></div>
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;font-size:14px;color:var(--muted);font-weight:600;line-height:1.7">
+        📍 Your GPS location is captured when you tap Start<br>
+        🔑 Two 4-digit PINs are auto-generated
       </div>
       <button class="btn btn-green btn-sm" onclick="startSession()">📍 Start Session</button>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">⚡</div>Active Sessions</div>
+      <div class="card-title"><div class="card-icon">⚡</div>Active Sessions</div>
       <div id="active-sessions-admin"><div class="empty-state"><span class="icon">📭</span>No active sessions</div></div>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">📜</div>Past Sessions</div>
+      <div class="card-title"><div class="card-icon">📜</div>Past Sessions</div>
       <div id="past-sessions-admin"><div class="empty-state"><span class="icon">📜</span>No past sessions</div></div>
     </div>
   </div>
 
+  <!-- STUDENTS -->
+
   <div class="panel" id="panel-students">
     <div class="card">
-      <div class="card-title"><div class="icon">👥</div>All Students</div>
-      <div id="admin-students-table"><div class="empty-state"><span class="icon">👥</span>No students yet</div></div>
+      <div class="card-title"><div class="card-icon">👥</div>All Students</div>
+      <div id="admin-students-table"><div class="empty-state"><span class="icon">👥</span>No students registered yet</div></div>
     </div>
   </div>
 
+  <!-- REPORTS -->
+
   <div class="panel" id="panel-reports">
     <div class="card">
-      <div class="card-title"><div class="icon">📊</div>Attendance Reports</div>
-      <div class="form-group"><label>Select Class</label><select id="report-class-select"><option value="">-- All Classes --</option></select></div>
+      <div class="card-title"><div class="card-icon">📊</div>Attendance Reports</div>
+      <div class="form-group"><label>Filter by Class</label><select id="report-class-select" class="no-icon"><option value="">-- All Classes --</option></select></div>
       <div id="report-data"><div class="empty-state"><span class="icon">📊</span>Select a class to view report</div></div>
     </div>
     <div class="download-row">
@@ -490,79 +689,40 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     </div>
   </div>
 
+  <!-- SETTINGS -->
+
   <div class="panel" id="panel-settings">
+    <div id="admin-profile-card" class="profile-card">
+      <div class="profile-avatar">👨‍🏫</div>
+      <div>
+        <div class="profile-name" id="prof-name">Teacher</div>
+        <div class="profile-role" id="prof-role">📋 Teacher / Admin</div>
+        <div class="profile-email" id="prof-email">–</div>
+      </div>
+    </div>
     <div class="card">
-      <div class="card-title"><div class="icon">🔑</div>Change Admin PIN</div>
-      <div class="form-group"><label>Current PIN</label><input type="password" id="current-pin" placeholder="Enter current PIN" maxlength="8"/></div>
-      <div class="form-group"><label>New PIN</label><input type="password" id="new-pin" placeholder="4-8 digits" maxlength="8"/></div>
-      <div class="form-group"><label>Confirm New PIN</label><input type="password" id="confirm-pin" placeholder="Repeat new PIN" maxlength="8"/></div>
+      <div class="card-title"><div class="card-icon">🔑</div>Change Admin PIN</div>
+      <div class="form-group"><label>Current PIN</label><input type="password" id="current-pin" placeholder="Enter current PIN" maxlength="8" class="no-icon"/></div>
+      <div class="form-group"><label>New PIN (4–8 digits)</label><input type="password" id="new-pin" placeholder="Enter new PIN" maxlength="8" class="no-icon"/></div>
+      <div class="form-group"><label>Confirm New PIN</label><input type="password" id="confirm-pin" placeholder="Repeat new PIN" maxlength="8" class="no-icon"/></div>
       <button class="btn btn-primary btn-sm" onclick="changeAdminPin()">Update PIN</button>
     </div>
     <div class="card">
-      <div class="card-title"><div class="icon">🏫</div>College Settings</div>
-      <div class="form-group"><label>College Name</label><input type="text" id="college-name" placeholder="Your College Name"/></div>
-      <div class="form-group"><label>Teacher Registration Code</label><input type="text" id="access-code" placeholder="Code for teacher registration"/></div>
+      <div class="card-title"><div class="card-icon">🏫</div>College Settings</div>
+      <div class="form-group"><label>College Name</label><input type="text" id="college-name" placeholder="Your College Name" class="no-icon"/></div>
+      <div class="form-group"><label>Teacher Registration Code</label><input type="text" id="access-code" placeholder="Code for teacher sign-up" class="no-icon"/></div>
       <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save Settings</button>
     </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">👤</div>My Profile</div>
-      <div id="admin-profile-info" style="font-size:15px;color:var(--muted);line-height:2">Loading...</div>
-    </div>
   </div>
-</div>
 
-<!-- SESSION DETAIL MODAL -->
-
-<div id="session-detail-modal" class="modal-overlay hidden">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('session-detail-modal')">✕</button>
-    <div class="modal-title" id="sdm-title">Session Details</div>
-    <div id="sdm-content"></div>
-  </div>
-</div>
-
-<!-- ENROLL MODAL -->
-
-<div id="enroll-modal" class="modal-overlay hidden">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('enroll-modal')">✕</button>
-    <div class="modal-title">👥 Manage Students</div>
-    <div id="enroll-class-name" style="font-size:14px;color:var(--muted);margin-bottom:16px;font-weight:700"></div>
-    <div id="enrollable-students"></div>
-  </div>
-</div>
-
-<!-- GUIDE BTN -->
-
-<button onclick="showDeployGuide()" style="position:fixed;bottom:24px;right:24px;z-index:200;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;width:54px;height:54px;border-radius:50%;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(67,97,238,0.4)" title="Help">🚀</button>
-
-<!-- GUIDE MODAL -->
-
-<div id="guide-modal" class="modal-overlay hidden">
-  <div class="modal" style="max-width:600px">
-    <button class="modal-close" onclick="closeModal('guide-modal')">✕</button>
-    <div class="modal-title">🚀 Deployment Guide</div>
-    <div style="font-size:14px;color:var(--muted);line-height:1.8">
-      <p><strong>Your live URL:</strong> attend-x-pwa-s36o.vercel.app</p>
-      <br>
-      <p><strong>To update the app:</strong></p>
-      <p>1. Edit files in Koder</p>
-      <p>2. Export to Files app</p>
-      <p>3. Upload to GitHub repo</p>
-      <p>4. Vercel auto-deploys! ✅</p>
-      <br>
-      <p><strong>Install as PWA on iPhone:</strong></p>
-      <p>Open URL in Safari → Share → Add to Home Screen</p>
-    </div>
-  </div>
-</div>
+</div><!-- /main-app -->
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, orderBy,
-  addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp }
+  addDoc, updateDoc, deleteDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -581,9 +741,8 @@ const db = getFirestore(app);
 
 let currentUser = null, currentUserData = null;
 let currentPin = '', selectedSessionForCheckin = null, currentCheckinMode = 'in';
-let enrollClassId = null;
 
-// ===== UTILS =====
+// ── UTILS ──
 window.toast = (msg, type='info') => {
   const c = document.getElementById('toast-container');
   const t = document.createElement('div');
@@ -592,7 +751,6 @@ window.toast = (msg, type='info') => {
   c.appendChild(t);
   setTimeout(() => t.remove(), 3500);
 };
-
 const genPin = (len=4) => Array.from({length:len}, () => Math.floor(Math.random()*10)).join('');
 const fmtDate = ts => { if(!ts) return '–'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); };
 const dist = (lat1,lon1,lat2,lon2) => {
@@ -602,7 +760,6 @@ const dist = (lat1,lon1,lat2,lon2) => {
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 };
 window.closeModal = id => document.getElementById(id).classList.add('hidden');
-window.showDeployGuide = () => document.getElementById('guide-modal').classList.remove('hidden');
 const downloadFile = (content, filename, type) => {
   const blob = new Blob([content],{type});
   const url = URL.createObjectURL(blob);
@@ -610,10 +767,25 @@ const downloadFile = (content, filename, type) => {
   a.href=url; a.download=filename; a.click();
   URL.revokeObjectURL(url);
 };
+function getInitial(name){ return name ? name.charAt(0).toUpperCase() : '?'; }
+function getGreeting(){ const h=new Date().getHours(); return h<12?'Good morning':'h<17?'Good afternoon':'Good evening'; }
 
-// ===== AUTH =====
+// Load college name on auth screen
+async function loadCollegeName() {
+  try {
+    const snap = await getDoc(doc(db,'settings','global'));
+    if(snap.exists() && snap.data().collegeName) {
+      document.getElementById('auth-college-name').textContent = snap.data().collegeName;
+    }
+  } catch(e){}
+}
+loadCollegeName();
+
+// ── AUTH STATE ──
 onAuthStateChanged(auth, async user => {
-  document.getElementById('loading-screen').style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('loading-screen').style.display = 'none';
+  }, 2200);
   if(user) {
     currentUser = user;
     const snap = await getDoc(doc(db,'users',user.uid));
@@ -631,16 +803,24 @@ function initApp() {
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('main-app').classList.remove('hidden');
   const isAdmin = currentUserData.role === 'admin';
-  document.getElementById('top-role-badge').textContent = isAdmin ? '🎓 Teacher' : '🎒 Student';
-  document.getElementById('top-user-name').textContent = currentUserData.name || currentUser.email;
+  const name = currentUserData.name || currentUser.email;
+  const initial = getInitial(name);
+
+  document.getElementById('top-role-badge').textContent = isAdmin ? '📋 Teacher' : '🎒 Student';
+  document.getElementById('top-avatar').textContent = initial;
   document.getElementById('student-nav').classList.toggle('hidden', isAdmin);
   document.getElementById('admin-nav').classList.toggle('hidden', !isAdmin);
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
   if(isAdmin) {
     document.getElementById('panel-admin-dashboard').classList.add('active');
+    document.getElementById('a-welcome-name').textContent = name;
+    document.getElementById('a-welcome-sub').textContent = `${currentUserData.department||''} • AttendX Admin`;
     loadAdminDashboard(); loadAdminClasses(); loadAdminSessions(); loadAdminStudents(); loadAdminProfile();
   } else {
     document.getElementById('panel-dashboard').classList.add('active');
+    document.getElementById('s-welcome-name').textContent = name;
+    document.getElementById('s-welcome-sub').textContent = `ID: ${currentUserData.studentId||'–'} • Student`;
     loadStudentDashboard(); loadStudentClasses(); loadActiveSessions();
   }
 }
@@ -651,14 +831,13 @@ window.switchRole = role => {
   document.getElementById('student-auth').classList.toggle('hidden', role !== 'student');
   document.getElementById('admin-auth').classList.toggle('hidden', role !== 'admin');
 };
-
 window.showRegister = () => document.getElementById('register-modal').classList.remove('hidden');
 window.showAdminRegister = () => document.getElementById('admin-register-modal').classList.remove('hidden');
 
 window.loginStudent = async () => {
   const email = document.getElementById('student-email').value.trim();
   const pass = document.getElementById('student-password').value;
-  if(!email||!pass) return toast('Fill all fields','error');
+  if(!email||!pass) return toast('Please fill all fields','error');
   try { await signInWithEmailAndPassword(auth, email, pass); toast('Welcome back! 👋','success'); }
   catch(e) { toast(e.message,'error'); }
 };
@@ -666,7 +845,7 @@ window.loginStudent = async () => {
 window.loginAdmin = async () => {
   const email = document.getElementById('admin-email').value.trim();
   const pass = document.getElementById('admin-password').value;
-  if(!email||!pass) return toast('Fill all fields','error');
+  if(!email||!pass) return toast('Please fill all fields','error');
   try {
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const snap = await getDoc(doc(db,'users',cred.user.uid));
@@ -707,9 +886,9 @@ window.registerAdmin = async () => {
   } catch(e) { toast(e.message,'error'); }
 };
 
-window.logout = async () => { await signOut(auth); toast('Logged out'); };
+window.logout = async () => { await signOut(auth); toast('Signed out successfully'); };
 
-// ===== NAVIGATION =====
+// ── NAVIGATION ──
 window.showPanel = (panelId, navId) => {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`panel-${panelId}`).classList.add('active');
@@ -724,21 +903,50 @@ window.showPanel = (panelId, navId) => {
   if(panelId==='my-classes') loadStudentClasses();
 };
 
-// ===== STUDENT DASHBOARD =====
+// ── STUDENT DASHBOARD ──
 async function loadStudentDashboard() {
   const attSnap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
   const records = attSnap.docs.map(d => d.data());
   const present = records.filter(r => r.checkIn).length;
   const total = records.length;
   const pct = total ? Math.round(present/total*100) : 0;
+
   document.getElementById('s-total-classes').textContent = (currentUserData.enrolledClasses||[]).length;
   document.getElementById('s-attended').textContent = present;
   document.getElementById('s-percentage').textContent = pct+'%';
   document.getElementById('s-present-count').textContent = present;
   document.getElementById('s-absent-count').textContent = total - present;
+
+  // Circle
   const offset = 314 - (pct/100)*314;
   document.getElementById('att-circle-progress').style.strokeDashoffset = offset;
   document.getElementById('att-circle-pct').textContent = pct+'%';
+  // Color circle based on percentage
+  const circleColor = pct >= 75 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+  document.getElementById('att-circle-progress').style.stroke = circleColor;
+  document.querySelector('.att-pct').style.color = circleColor;
+
+  // Attendance warning
+  const warnBox = document.getElementById('att-warning-box');
+  const warnTitle = document.getElementById('att-warning-title');
+  const warnText = document.getElementById('att-warning-text');
+  if(total > 0) {
+    if(pct < 50) {
+      warnBox.classList.remove('hidden','att-warning');
+      warnBox.classList.add('att-danger');
+      warnTitle.textContent = '🚨 Critical Attendance — ' + pct + '%';
+      warnText.textContent = 'Your attendance is critically low. You may be barred from exams. Attend all upcoming classes immediately.';
+    } else if(pct < 75) {
+      warnBox.classList.remove('hidden','att-danger');
+      warnBox.classList.add('att-warning');
+      warnTitle.textContent = '⚠️ Low Attendance Warning — ' + pct + '%';
+      warnText.textContent = 'Your attendance is below 75%. Most colleges require 75% minimum. Please attend more classes.';
+    } else {
+      warnBox.classList.add('hidden');
+    }
+  }
+
+  // Streak
   const dates = [...new Set(records.filter(r=>r.checkIn).map(r=>{const d=r.checkInTime?.toDate?.();return d?d.toDateString():null}).filter(Boolean))];
   let streak=0; const today=new Date();
   for(let i=0;i<30;i++){const d=new Date(today);d.setDate(d.getDate()-i);if(dates.includes(d.toDateString()))streak++;else break;}
@@ -755,17 +963,19 @@ async function loadActiveSessions() {
   el.innerHTML = sessions.length ? sessions.map(s=>`
     <div class="session-banner">
       <div class="session-pulse"></div>
-      <div><div style="font-weight:800;font-size:16px">${s.className}</div>
-      <div style="font-size:13px;color:var(--muted)">Started: ${fmtDate(s.startTime)}</div></div>
-      <span class="chip chip-green" style="margin-left:auto">LIVE</span>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:16px">${s.className}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--font-mono)">Started: ${fmtDate(s.startTime)}</div>
+      </div>
+      <span class="chip chip-green">LIVE</span>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📭</span>No active sessions for your classes</div>';
 }
 
-// ===== STUDENT CLASSES =====
+// ── STUDENT CLASSES ──
 async function loadStudentClasses() {
   const enrolled = currentUserData.enrolledClasses || [];
   const el = document.getElementById('student-classes-list');
-  if(!enrolled.length) { el.innerHTML='<div class="empty-state"><span class="icon">📚</span>Not enrolled in any classes yet.</div>'; return; }
+  if(!enrolled.length) { el.innerHTML='<div class="empty-state"><span class="icon">📚</span>Not enrolled in any classes yet.<p>Ask your teacher to enroll you.</p></div>'; return; }
   const classes = [];
   for(const cid of enrolled) { const snap=await getDoc(doc(db,'classes',cid)); if(snap.exists()) classes.push({id:snap.id,...snap.data()}); }
   const attSnap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
@@ -776,33 +986,34 @@ async function loadStudentClasses() {
     const total = c.totalSessions || 1;
     const pct = Math.min(100,Math.round(present/total*100));
     const color = pct>=75?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
+    const chipClass = pct>=75?'chip-green':pct>=50?'chip-yellow':'chip-red';
     return `<div class="class-card">
-      <div style="display:flex;justify-content:space-between;align-items:start">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
         <div><div class="class-name">${c.name}</div><div class="class-meta">${c.code} • ${c.schedule||''} • ${c.time||''}</div></div>
-        <span class="chip ${pct>=75?'chip-green':pct>=50?'chip-yellow':'chip-red'}">${pct}%</span>
+        <span class="chip ${chipClass}">${pct}%</span>
       </div>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:10px;font-weight:600">${present} / ${total} sessions attended</div>
+      <div style="font-size:13px;color:var(--muted);font-weight:600;margin-top:4px">${present} of ${total} sessions attended</div>
       <div class="class-progress"><div class="class-progress-fill" style="width:${pct}%;background:${color}"></div></div>
     </div>`;
   }).join('');
 }
 
-// ===== STUDENT ATTENDANCE =====
+// ── STUDENT ATTENDANCE ──
 async function loadStudentAttendance() {
   const q = query(collection(db,'attendance'),where('studentId','==',currentUser.uid),orderBy('checkInTime','desc'));
   const snap = await getDocs(q);
   const records = snap.docs.map(d=>({id:d.id,...d.data()}));
   window._studentAttRecords = records;
   const el = document.getElementById('student-attendance-table');
-  el.innerHTML = records.length ? `<table class="data-table"><thead><tr>
+  el.innerHTML = records.length ? `<div class="table-wrap"><table class="data-table"><thead><tr>
     <th>Class</th><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th>
   </tr></thead><tbody>${records.map(r=>`<tr>
     <td style="font-weight:700">${r.className||'–'}</td>
     <td>${r.checkInTime?r.checkInTime.toDate().toLocaleDateString():'–'}</td>
     <td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td>
-    <td>${r.checkOutTime?r.checkOutTime.toDate().toLocaleTimeString():'Not out yet'}</td>
+    <td>${r.checkOutTime?r.checkOutTime.toDate().toLocaleTimeString():'Not out'}</td>
     <td><span class="chip ${r.checkIn?'chip-green':'chip-red'}">${r.checkIn?'PRESENT':'ABSENT'}</span></td>
-  </tr>`).join('')}</tbody></table>` : '<div class="empty-state"><span class="icon">📋</span>No records yet</div>';
+  </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><span class="icon">📋</span>No records yet</div>';
 }
 
 window.downloadStudentReport = fmt => {
@@ -814,7 +1025,7 @@ window.downloadStudentReport = fmt => {
   } else downloadFile(JSON.stringify(records,null,2),'my_attendance.json','application/json');
 };
 
-// ===== CHECK IN/OUT =====
+// ── CHECK IN/OUT ──
 async function loadSessionSelectForCheckin() {
   const enrolled = currentUserData.enrolledClasses || [];
   const q = query(collection(db,'sessions'),where('active','==',true));
@@ -834,11 +1045,11 @@ window.loadSessionForCheckin = async () => {
   const attQ = query(collection(db,'attendance'),where('sessionId','==',sid),where('studentId','==',currentUser.uid));
   const attSnap = await getDocs(attQ);
   const existing = attSnap.docs[0];
-  if(existing&&existing.data().checkIn&&existing.data().checkOut) return toast('Already checked in and out','error');
+  if(existing&&existing.data().checkIn&&existing.data().checkOut) return toast('Already checked in and out of this session','error');
   currentCheckinMode = (existing&&existing.data().checkIn) ? 'out' : 'in';
   document.getElementById('checkin-pin-area').classList.remove('hidden');
   document.getElementById('checkin-geo-status').style.display='block';
-  document.getElementById('session-info-display').textContent = `${selectedSessionForCheckin.className}`;
+  document.getElementById('session-info-display').textContent = selectedSessionForCheckin.className;
   document.getElementById('checkin-mode-chip').textContent = currentCheckinMode==='in' ? '🟢 CHECK-IN MODE' : '🔴 CHECK-OUT MODE';
   document.getElementById('checkin-mode-chip').className = 'chip '+(currentCheckinMode==='in'?'chip-green':'chip-red');
   currentPin=''; updatePinDisplay();
@@ -855,11 +1066,11 @@ function checkGeofence(session) {
     const inRange = d <= radius;
     document.getElementById('student-geo-dot').style.background = inRange?'var(--green)':'var(--red)';
     geoStatus.innerHTML = inRange
-      ? `<span style="color:var(--green);font-weight:700">✅ Within range (${Math.round(d)}m away)</span>`
-      : `<span style="color:var(--red);font-weight:700">⛔ Out of range (${Math.round(d)}m, max ${radius}m)</span>`;
+      ? `<span style="color:var(--green);font-weight:700">✅ Within range — ${Math.round(d)}m from class</span>`
+      : `<span style="color:var(--red);font-weight:700">⛔ Out of range — ${Math.round(d)}m away (max ${radius}m)</span>`;
     window._inGeofence = inRange;
     window._studentDist = d;
-  }, () => { geoStatus.innerHTML='<span style="color:var(--yellow);font-weight:700">⚠️ Location denied – skipping geofence</span>'; window._inGeofence=true; });
+  }, () => { geoStatus.innerHTML='<span style="color:var(--yellow);font-weight:700">⚠️ Location access denied</span>'; window._inGeofence=true; });
 }
 
 window.pinPress = key => {
@@ -868,13 +1079,12 @@ window.pinPress = key => {
   else if(currentPin.length<4) currentPin+=key;
   updatePinDisplay();
 };
-
 function updatePinDisplay() {
   for(let i=0;i<4;i++) document.getElementById(`dot-${i}`).classList.toggle('filled',i<currentPin.length);
 }
 
 window.submitPin = async () => {
-  if(currentPin.length<4) return toast('Enter 4-digit PIN','error');
+  if(currentPin.length<4) return toast('Enter a 4-digit PIN','error');
   if(!window._inGeofence) return toast('You are not within the class area','error');
   if(!selectedSessionForCheckin) return toast('No session selected','error');
   const session = selectedSessionForCheckin;
@@ -905,7 +1115,7 @@ window.submitPin = async () => {
   } catch(e) { toast(e.message,'error'); }
 };
 
-// ===== ADMIN DASHBOARD =====
+// ── ADMIN DASHBOARD ──
 async function loadAdminDashboard() {
   const [studentsSnap,classesSnap,sessionsSnap] = await Promise.all([
     getDocs(query(collection(db,'users'),where('role','==','student'))),
@@ -915,7 +1125,6 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-students').textContent = studentsSnap.size;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
-  document.getElementById('a-today-att').textContent = '–%';
   const activeSessions = sessionsSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl = document.getElementById('admin-active-sessions');
   aEl.innerHTML = activeSessions.length ? activeSessions.map(s=>`
@@ -923,22 +1132,24 @@ async function loadAdminDashboard() {
       <div class="session-pulse"></div>
       <div style="flex:1">
         <div style="font-weight:800;font-size:16px">${s.className}</div>
-        <div style="font-size:14px;margin-top:4px">
-          🔵 Check-In: <strong style="color:var(--accent);font-size:20px">${s.checkInPin}</strong> &nbsp;|&nbsp;
-          🔴 Check-Out: <strong style="color:var(--red);font-size:20px">${s.checkOutPin}</strong>
+        <div style="font-size:13px;margin-top:6px;font-weight:600">
+          🔵 Check-In: <span style="color:var(--accent);font-size:20px;font-family:var(--font-mono);font-weight:800">${s.checkInPin}</span>
+          &nbsp;|&nbsp;
+          🔴 Check-Out: <span style="color:var(--red);font-size:20px;font-family:var(--font-mono);font-weight:800">${s.checkOutPin}</span>
         </div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="endSession('${s.id}')">End</button>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
+
   const recentSnap = await getDocs(query(collection(db,'attendance'),orderBy('checkInTime','desc')));
   const recent = recentSnap.docs.slice(0,8).map(d=>({id:d.id,...d.data()}));
   const rEl = document.getElementById('admin-recent-activity');
-  rEl.innerHTML = recent.length ? `<table class="data-table"><thead><tr><th>Student</th><th>Class</th><th>Time</th><th>Status</th></tr></thead><tbody>
-  ${recent.map(r=>`<tr><td style="font-weight:700">${r.studentName||'–'}</td><td>${r.className||'–'}</td><td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td><td><span class="chip chip-green">CHECKED IN</span></td></tr>`).join('')}
-  </tbody></table>` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
+  rEl.innerHTML = recent.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Student</th><th>Class</th><th>Time</th><th>Status</th></tr></thead><tbody>
+  ${recent.map(r=>`<tr><td style="font-weight:700">${r.studentName||'–'}</td><td>${r.className||'–'}</td><td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td><td><span class="chip chip-green">IN</span></td></tr>`).join('')}
+  </tbody></table></div>` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
 }
 
-// ===== ADMIN CLASSES =====
+// ── ADMIN CLASSES ──
 async function loadAdminClasses() {
   const q = query(collection(db,'classes'),where('adminId','==',currentUser.uid));
   const snap = await getDocs(q);
@@ -960,8 +1171,6 @@ async function loadAdminClasses() {
         <button class="btn btn-danger btn-sm" onclick="deleteClass('${c.id}','${c.name}')">🗑️ Delete</button>
       </div>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📚</span>No classes yet. Create your first class!</div>';
-
-  // Fill selects
   const sel = document.getElementById('session-class-select');
   sel.innerHTML = '<option value="">-- Select class --</option>' + classes.map(c=>`<option value="${c.id}">${c.name} (${c.code})</option>`).join('');
 }
@@ -969,20 +1178,23 @@ async function loadAdminClasses() {
 window.createClass = async () => {
   const name=document.getElementById('new-class-name').value.trim();
   const code=document.getElementById('new-class-code').value.trim();
-  const schedule=document.getElementById('new-class-schedule').value.trim();
-  const time=document.getElementById('new-class-time').value.trim();
-  const room=document.getElementById('new-class-room').value.trim();
-  const total=parseInt(document.getElementById('new-class-total').value)||40;
   if(!name||!code) return toast('Class name and code required','error');
   try {
-    await addDoc(collection(db,'classes'),{name,code,schedule,time,room,totalSessions:total,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp(),enrolledStudents:[]});
+    await addDoc(collection(db,'classes'),{
+      name, code,
+      schedule:document.getElementById('new-class-schedule').value.trim(),
+      time:document.getElementById('new-class-time').value.trim(),
+      room:document.getElementById('new-class-room').value.trim(),
+      totalSessions:parseInt(document.getElementById('new-class-total').value)||40,
+      adminId:currentUser.uid, adminName:currentUserData.name,
+      createdAt:serverTimestamp(), enrolledStudents:[]
+    });
     toast('Class created! 🎉','success');
     ['new-class-name','new-class-code','new-class-schedule','new-class-time','new-class-room','new-class-total'].forEach(id=>document.getElementById(id).value='');
     loadAdminClasses();
   } catch(e) { toast(e.message,'error'); }
 };
 
-// ===== EDIT CLASS =====
 window.openEditClass = async classId => {
   const snap = await getDoc(doc(db,'classes',classId));
   if(!snap.exists()) return toast('Class not found','error');
@@ -1016,27 +1228,22 @@ window.saveEditClass = async () => {
   } catch(e) { toast(e.message,'error'); }
 };
 
-// ===== DELETE CLASS =====
 window.deleteClass = async (classId, className) => {
-  if(!confirm(`Delete "${className}"?\n\nThis will also remove all attendance records for this class. This cannot be undone.`)) return;
+  if(!confirm(`Delete "${className}"?\n\nThis cannot be undone.`)) return;
   try {
     await deleteDoc(doc(db,'classes',classId));
-    // Remove from all students' enrolled classes
     const studentsSnap = await getDocs(query(collection(db,'users'),where('role','==','student')));
     for(const studentDoc of studentsSnap.docs) {
       const data = studentDoc.data();
-      if((data.enrolledClasses||[]).includes(classId)) {
+      if((data.enrolledClasses||[]).includes(classId))
         await updateDoc(doc(db,'users',studentDoc.id),{enrolledClasses:data.enrolledClasses.filter(id=>id!==classId)});
-      }
     }
     toast(`"${className}" deleted ✅`,'success');
     loadAdminClasses();
   } catch(e) { toast(e.message,'error'); }
 };
 
-// ===== ENROLL STUDENTS =====
 window.openEnrollModal = async (classId, className) => {
-  enrollClassId = classId;
   document.getElementById('enroll-class-name').textContent = className;
   document.getElementById('enroll-modal').classList.remove('hidden');
   const classSnap = await getDoc(doc(db,'classes',classId));
@@ -1044,10 +1251,10 @@ window.openEnrollModal = async (classId, className) => {
   const studentsSnap = await getDocs(query(collection(db,'users'),where('role','==','student')));
   const students = studentsSnap.docs.map(d=>({id:d.id,...d.data()}));
   document.getElementById('enrollable-students').innerHTML = students.length ? students.map(s=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:2px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
       <div>
         <div style="font-weight:700;font-size:16px">${s.name}</div>
-        <div style="font-size:13px;color:var(--muted);font-family:var(--font-mono)">${s.studentId} • ${s.email}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">${s.studentId} • ${s.email}</div>
       </div>
       <button class="btn btn-sm ${enrolled.includes(s.id)?'btn-danger':'btn-green'}"
         onclick="toggleEnroll('${s.id}','${classId}','${enrolled.includes(s.id)}')">
@@ -1062,24 +1269,17 @@ window.toggleEnroll = async (studentId, classId, isEnrolled) => {
   const [classSnap,studentSnap] = await Promise.all([getDoc(classRef),getDoc(studentRef)]);
   let classEnrolled=[...classSnap.data().enrolledStudents||[]];
   let studentClasses=[...studentSnap.data().enrolledClasses||[]];
-  if(isEnrolled) {
-    classEnrolled=classEnrolled.filter(id=>id!==studentId);
-    studentClasses=studentClasses.filter(id=>id!==classId);
-    toast('Student removed','success');
-  } else {
-    if(!classEnrolled.includes(studentId)) classEnrolled.push(studentId);
-    if(!studentClasses.includes(classId)) studentClasses.push(classId);
-    toast('Student enrolled! ✅','success');
-  }
+  if(isEnrolled) { classEnrolled=classEnrolled.filter(id=>id!==studentId); studentClasses=studentClasses.filter(id=>id!==classId); toast('Student removed','success'); }
+  else { if(!classEnrolled.includes(studentId))classEnrolled.push(studentId); if(!studentClasses.includes(classId))studentClasses.push(classId); toast('Student enrolled! ✅','success'); }
   await Promise.all([updateDoc(classRef,{enrolledStudents:classEnrolled}),updateDoc(studentRef,{enrolledClasses:studentClasses})]);
   openEnrollModal(classId, classSnap.data().name);
 };
 
-// ===== SESSIONS =====
+// ── SESSIONS ──
 window.startSession = async () => {
   const classId=document.getElementById('session-class-select').value;
   const radius=parseInt(document.getElementById('session-geo-radius').value)||100;
-  if(!classId) return toast('Select a class','error');
+  if(!classId) return toast('Select a class first','error');
   const classSnap=await getDoc(doc(db,'classes',classId));
   if(!classSnap.exists()) return toast('Class not found','error');
   const cls=classSnap.data();
@@ -1089,9 +1289,9 @@ window.startSession = async () => {
       classId,className:cls.name,classCode:cls.code,adminId:currentUser.uid,adminName:currentUserData.name,
       checkInPin,checkOutPin,lat:pos.coords.latitude,lng:pos.coords.longitude,radius,active:true,startTime:serverTimestamp(),endTime:null
     });
-    toast(`Session started! ✅ Check-In PIN: ${checkInPin} | Check-Out PIN: ${checkOutPin}`,'success');
+    toast(`Session started! ✅  Check-In: ${checkInPin} | Check-Out: ${checkOutPin}`,'success');
     loadAdminSessions(); loadAdminDashboard();
-  }, ()=>toast('Location access required!','error'));
+  }, ()=>toast('Location access required to start session','error'));
 };
 
 async function loadAdminSessions() {
@@ -1107,12 +1307,12 @@ async function loadAdminSessions() {
       <div class="session-pulse"></div>
       <div style="flex:1">
         <div style="font-weight:800;font-size:17px">${s.className}</div>
-        <div style="font-size:15px;margin-top:6px">
-          🔵 Check-In: <strong style="color:var(--accent);font-size:22px;font-family:var(--font-mono)">${s.checkInPin}</strong>
-          &nbsp;|&nbsp;
-          🔴 Check-Out: <strong style="color:var(--red);font-size:22px;font-family:var(--font-mono)">${s.checkOutPin}</strong>
+        <div style="font-size:14px;margin-top:8px;font-weight:600">
+          🔵 Check-In: <span style="color:var(--accent);font-size:22px;font-family:var(--font-mono);font-weight:800">${s.checkInPin}</span>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+          🔴 Check-Out: <span style="color:var(--red);font-size:22px;font-family:var(--font-mono);font-weight:800">${s.checkOutPin}</span>
         </div>
-        <div style="font-size:13px;color:var(--muted);font-weight:600">📍 Radius: ${s.radius}m</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;font-weight:600">📍 Radius: ${s.radius}m</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="viewSessionAttendance('${s.id}')">👁 View</button>
@@ -1120,10 +1320,10 @@ async function loadAdminSessions() {
       </div>
     </div>`).join(''):'<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
   const pEl=document.getElementById('past-sessions-admin');
-  pEl.innerHTML=pastSessions.length?`<table class="data-table"><thead><tr><th>Class</th><th>Start</th><th>End</th><th>Actions</th></tr></thead><tbody>
+  pEl.innerHTML=pastSessions.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Class</th><th>Start</th><th>End</th><th>Action</th></tr></thead><tbody>
   ${pastSessions.map(s=>`<tr><td style="font-weight:700">${s.className}</td><td>${fmtDate(s.startTime)}</td><td>${fmtDate(s.endTime)}</td>
   <td><button class="btn btn-secondary btn-sm" onclick="viewSessionAttendance('${s.id}')">View</button></td></tr>`).join('')}
-  </tbody></table>`:'<div class="empty-state"><span class="icon">📜</span>No past sessions</div>';
+  </tbody></table></div>`:'<div class="empty-state"><span class="icon">📜</span>No past sessions</div>';
 }
 
 window.endSession = async sessionId => {
@@ -1138,19 +1338,19 @@ window.viewSessionAttendance = async sessionId => {
   const attSnap=await getDocs(query(collection(db,'attendance'),where('sessionId','==',sessionId)));
   const records=attSnap.docs.map(d=>({id:d.id,...d.data()}));
   window._currentSessionRecords=records;
-  document.getElementById('sdm-title').textContent=`${session.className}`;
+  document.getElementById('sdm-title').textContent=session.className;
   document.getElementById('sdm-content').innerHTML=`
-    <div style="background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
-      <div style="font-size:15px;font-weight:700">🔵 Check-In PIN: <span style="color:var(--accent);font-size:22px;font-family:var(--font-mono)">${session.checkInPin}</span></div>
-      <div style="font-size:15px;font-weight:700;margin-top:8px">🔴 Check-Out PIN: <span style="color:var(--red);font-size:22px;font-family:var(--font-mono)">${session.checkOutPin}</span></div>
+    <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px">🔵 Check-In PIN: <span style="color:var(--accent);font-size:24px;font-family:var(--font-mono)">${session.checkInPin}</span></div>
+      <div style="font-size:15px;font-weight:700">🔴 Check-Out PIN: <span style="color:var(--red);font-size:24px;font-family:var(--font-mono)">${session.checkOutPin}</span></div>
     </div>
-    <div style="margin-bottom:14px"><span class="chip chip-blue">${records.length} students recorded</span></div>
-    ${records.length?`<table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Check-In</th><th>Check-Out</th><th>Dist.</th></tr></thead><tbody>
+    <div style="margin-bottom:14px"><span class="chip chip-blue">${records.length} students</span></div>
+    ${records.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>In</th><th>Out</th><th>Dist</th></tr></thead><tbody>
     ${records.map(r=>`<tr><td style="font-weight:700">${r.studentName||'–'}</td><td>${r.studentIdNum||'–'}</td>
     <td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td>
-    <td>${r.checkOutTime?r.checkOutTime.toDate().toLocaleTimeString():'Not out'}</td>
+    <td>${r.checkOutTime?r.checkOutTime.toDate().toLocaleTimeString():'–'}</td>
     <td>${r.distance?Math.round(r.distance)+'m':'–'}</td></tr>`).join('')}
-    </tbody></table>`:'<div class="empty-state">No attendance recorded yet</div>'}
+    </tbody></table></div>`:'<div class="empty-state">No attendance yet</div>'}
     <div class="download-row" style="margin-top:16px">
       <button class="btn btn-secondary btn-sm" onclick="downloadSessionCSV('${session.className}')">⬇ Download CSV</button>
     </div>`;
@@ -1163,40 +1363,38 @@ window.downloadSessionCSV = className => {
   downloadFile(rows.map(r=>r.join(',')).join('\n'),`${className}_attendance.csv`,'text/csv');
 };
 
-// ===== ADMIN STUDENTS =====
+// ── ADMIN STUDENTS ──
 async function loadAdminStudents() {
   const snap=await getDocs(query(collection(db,'users'),where('role','==','student')));
   const students=snap.docs.map(d=>({id:d.id,...d.data()}));
   const el=document.getElementById('admin-students-table');
-  el.innerHTML=students.length?`<table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
+  el.innerHTML=students.length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
   ${students.map(s=>`<tr>
     <td style="font-weight:700">${s.name||'–'}</td>
     <td style="font-family:var(--font-mono)">${s.studentId||'–'}</td>
     <td>${s.email||'–'}</td>
     <td>${(s.enrolledClasses||[]).length}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${s.name}')">🗑️ Delete</button></td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${s.name}')">🗑️</button></td>
   </tr>`).join('')}
-  </tbody></table>`:'<div class="empty-state"><span class="icon">👥</span>No students yet</div>';
+  </tbody></table></div>`:'<div class="empty-state"><span class="icon">👥</span>No students yet</div>';
 }
 
 window.deleteStudent = async (studentId, studentName) => {
-  if(!confirm(`Delete student "${studentName}"?\n\nThis will remove their account and all attendance records. Cannot be undone.`)) return;
+  if(!confirm(`Delete "${studentName}"? This cannot be undone.`)) return;
   try {
     await deleteDoc(doc(db,'users',studentId));
-    // Remove from all classes
     const classesSnap=await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)));
     for(const classDoc of classesSnap.docs) {
       const data=classDoc.data();
-      if((data.enrolledStudents||[]).includes(studentId)) {
+      if((data.enrolledStudents||[]).includes(studentId))
         await updateDoc(doc(db,'classes',classDoc.id),{enrolledStudents:data.enrolledStudents.filter(id=>id!==studentId)});
-      }
     }
     toast(`"${studentName}" deleted ✅`,'success');
     loadAdminStudents();
   } catch(e) { toast(e.message,'error'); }
 };
 
-// ===== REPORTS =====
+// ── REPORTS ──
 async function loadReportClasses() {
   const q=query(collection(db,'classes'),where('adminId','==',currentUser.uid));
   const snap=await getDocs(q);
@@ -1215,12 +1413,12 @@ async function loadReport(classId) {
   if(!records.length){el.innerHTML='<div class="empty-state"><span class="icon">📊</span>No data</div>';return;}
   const byStudent={};
   records.forEach(r=>{if(!byStudent[r.studentId])byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,id:r.studentIdNum,sessions:0,present:0};byStudent[r.studentId].sessions++;if(r.checkIn)byStudent[r.studentId].present++;});
-  el.innerHTML=`<table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
+  el.innerHTML=`<div class="table-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
   ${Object.values(byStudent).map(s=>{const pct=Math.round(s.present/s.sessions*100);return`<tr>
     <td style="font-weight:700">${s.name||'–'}</td><td style="font-family:var(--font-mono)">${s.id||'–'}</td>
     <td>${s.sessions}</td><td>${s.present}</td>
     <td><span class="chip ${pct>=75?'chip-green':pct>=50?'chip-yellow':'chip-red'}">${pct}%</span></td>
-  </tr>`;}).join('')}</tbody></table>`;
+  </tr>`;}).join('')}</tbody></table></div>`;
 }
 
 window.downloadReport = fmt => {
@@ -1230,11 +1428,12 @@ window.downloadReport = fmt => {
   else downloadFile(JSON.stringify(records,null,2),'report.json','application/json');
 };
 
-// ===== SETTINGS =====
+// ── SETTINGS ──
 async function loadAdminProfile() {
-  const el=document.getElementById('admin-profile-info');
   if(!currentUserData) return;
-  el.innerHTML=`<div><strong>Name:</strong> ${currentUserData.name}</div><div><strong>Email:</strong> ${currentUser.email}</div><div><strong>Department:</strong> ${currentUserData.department||'–'}</div><div><strong>Current PIN:</strong> <span style="color:var(--accent);font-family:var(--font-mono)">${currentUserData.adminPin||'1234'}</span></div>`;
+  document.getElementById('prof-name').textContent = currentUserData.name || '–';
+  document.getElementById('prof-email').textContent = currentUser.email || '–';
+  document.getElementById('prof-role').textContent = `📋 ${currentUserData.department||'Teacher'} • Admin`;
   const settingsSnap=await getDoc(doc(db,'settings','global'));
   if(settingsSnap.exists()){const s=settingsSnap.data();document.getElementById('college-name').value=s.collegeName||'';document.getElementById('access-code').value=s.adminCode||'';}
 }
@@ -1244,24 +1443,25 @@ window.changeAdminPin = async () => {
   const newPin=document.getElementById('new-pin').value;
   const confirm2=document.getElementById('confirm-pin').value;
   if(!current||!newPin||!confirm2) return toast('Fill all fields','error');
-  if(current!==(currentUserData.adminPin||'1234')) return toast('Current PIN incorrect','error');
+  if(current!==(currentUserData.adminPin||'1234')) return toast('Current PIN is incorrect','error');
   if(newPin!==confirm2) return toast('New PINs do not match','error');
-  if(!/^\d{4,8}$/.test(newPin)) return toast('PIN must be 4-8 digits','error');
+  if(!/^\d{4,8}$/.test(newPin)) return toast('PIN must be 4–8 digits','error');
   await updateDoc(doc(db,'users',currentUser.uid),{adminPin:newPin});
   currentUserData.adminPin=newPin;
   toast('PIN updated! ✅','success');
   ['current-pin','new-pin','confirm-pin'].forEach(id=>document.getElementById(id).value='');
-  loadAdminProfile();
 };
 
 window.saveSettings = async () => {
   const collegeName=document.getElementById('college-name').value.trim();
   const adminCode=document.getElementById('access-code').value.trim();
   await setDoc(doc(db,'settings','global'),{collegeName,adminCode},{merge:true});
+  // Update auth screen college name
+  document.getElementById('auth-college-name').textContent = collegeName || 'Your College';
   toast('Settings saved! ✅','success');
 };
 
-// PWA
+// ── PWA ──
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 </script>
