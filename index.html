@@ -161,7 +161,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 @keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.03);opacity:.4}}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,20,40,0.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
 .modal{background:var(–surface);border:2px solid var(–border);border-radius:24px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(–shadow-lg)}
 .modal-title{font-size:1.4rem;font-weight:800;margin-bottom:24px;color:var(–text)}
 .modal-close{float:right;background:var(–bg);border:2px solid var(–border);color:var(–muted);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
@@ -266,7 +266,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
   <div class="modal">
     <button class="modal-close" onclick="closeModal('forgot-password-modal')">✕</button>
     <div class="modal-title">🔑 Reset Password</div>
-    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;">Enter your email and we'll send you a reset link.</p>
+    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;">Enter your registered email address and we'll send you a password reset link.</p>
     <div class="form-group"><label>Email Address</label><input type="email" id="forgot-email" placeholder="you@college.edu"/></div>
     <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
     <button class="link-btn" onclick="closeModal('forgot-password-modal')">Back to Sign In</button>
@@ -549,27 +549,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 
 <!-- GUIDE BTN -->
 
-<button onclick="showDeployGuide()" style="position:fixed;bottom:24px;right:24px;z-index:200;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;width:54px;height:54px;border-radius:50%;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(67,97,238,0.4)" title="Help">🚀</button>
-
-<!-- GUIDE MODAL -->
-
-<div id="guide-modal" class="modal-overlay hidden">
-  <div class="modal" style="max-width:600px">
-    <button class="modal-close" onclick="closeModal('guide-modal')">✕</button>
-    <div class="modal-title">🚀 Deployment Guide</div>
-    <div style="font-size:14px;color:var(--muted);line-height:1.8">
-      <p><strong>Your live URL:</strong> attend-x-pwa-s36o.vercel.app</p>
-      <br>
-      <p><strong>To update the app:</strong></p>
-      <p>1. Edit files in Koder</p>
-      <p>2. Export to Files app</p>
-      <p>3. Upload to GitHub repo</p>
-      <p>4. Vercel auto-deploys! ✅</p>
-      <br>
-      <p><strong>Install as PWA on iPhone:</strong></p>
-      <p>Open URL in Safari → Share → Add to Home Screen</p>
-    </div>
-  </div>
 </div>
 
 <script type="module">
@@ -617,7 +596,6 @@ const dist = (lat1,lon1,lat2,lon2) => {
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 };
 window.closeModal = id => document.getElementById(id).classList.add('hidden');
-window.showDeployGuide = () => document.getElementById('guide-modal').classList.remove('hidden');
 const downloadFile = (content, filename, type) => {
   const blob = new Blob([content],{type});
   const url = URL.createObjectURL(blob);
@@ -669,30 +647,6 @@ window.switchRole = role => {
 
 window.showRegister = () => document.getElementById('register-modal').classList.remove('hidden');
 window.showAdminRegister = () => document.getElementById('admin-register-modal').classList.remove('hidden');
-
-window.showForgotPassword = () => {
-  const activeRole = document.getElementById('admin-auth').classList.contains('hidden') ? 'student' : 'admin';
-  const emailVal = activeRole === 'student'
-    ? document.getElementById('student-email').value
-    : document.getElementById('admin-email').value;
-  if(emailVal) document.getElementById('forgot-email').value = emailVal;
-  document.getElementById('forgot-password-modal').classList.remove('hidden');
-};
-
-window.sendPasswordReset = async () => {
-  const email = document.getElementById('forgot-email').value.trim();
-  if(!email) return toast('Please enter your email address', 'error');
-  try {
-    await sendPasswordResetEmail(auth, email);
-    toast('Reset email sent! Check your inbox 📧', 'success');
-    closeModal('forgot-password-modal');
-    document.getElementById('forgot-email').value = '';
-  } catch(e) {
-    if(e.code === 'auth/user-not-found') toast('No account found with that email', 'error');
-    else if(e.code === 'auth/invalid-email') toast('Please enter a valid email address', 'error');
-    else toast(e.message, 'error');
-  }
-};
 
 window.loginStudent = async () => {
   const email = document.getElementById('student-email').value.trim();
@@ -1298,6 +1252,45 @@ window.saveSettings = async () => {
   const adminCode=document.getElementById('access-code').value.trim();
   await setDoc(doc(db,'settings','global'),{collegeName,adminCode},{merge:true});
   toast('Settings saved! ✅','success');
+};
+
+
+// ===== FORGOT PASSWORD =====
+window.showForgotPassword = () => {
+  const isAdminTab = !document.getElementById('admin-auth').classList.contains('hidden');
+  const emailVal = isAdminTab
+    ? document.getElementById('admin-email').value
+    : document.getElementById('student-email').value;
+  document.getElementById('forgot-email').value = emailVal || '';
+  document.getElementById('forgot-password-modal').classList.remove('hidden');
+};
+
+window.sendPasswordReset = async () => {
+  const email = document.getElementById('forgot-email').value.trim();
+  if(!email) return toast('Please enter your email address', 'error');
+  const btn = event.target;
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    toast('Reset link sent! Check your inbox and spam folder 📧', 'success');
+    closeModal('forgot-password-modal');
+    document.getElementById('forgot-email').value = '';
+  } catch(e) {
+    console.error('Password reset error:', e.code, e.message);
+    if(e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+      toast('No account found with that email address', 'error');
+    } else if(e.code === 'auth/invalid-email') {
+      toast('Please enter a valid email address', 'error');
+    } else if(e.code === 'auth/too-many-requests') {
+      toast('Too many attempts. Please wait a few minutes and try again', 'error');
+    } else {
+      toast('Error: ' + e.message, 'error');
+    }
+  } finally {
+    btn.textContent = 'Send Reset Link';
+    btn.disabled = false;
+  }
 };
 
 // PWA
