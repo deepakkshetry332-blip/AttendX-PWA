@@ -266,7 +266,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
   <div class="modal">
     <button class="modal-close" onclick="closeModal('forgot-password-modal')">✕</button>
     <div class="modal-title">🔑 Reset Password</div>
-    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;">Enter your email address and we'll send you a link to reset your password.</p>
+    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;">Enter your email and we'll send you a reset link.</p>
     <div class="form-group"><label>Email Address</label><input type="email" id="forgot-email" placeholder="you@college.edu"/></div>
     <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
     <button class="link-btn" onclick="closeModal('forgot-password-modal')">Back to Sign In</button>
@@ -671,27 +671,26 @@ window.showRegister = () => document.getElementById('register-modal').classList.
 window.showAdminRegister = () => document.getElementById('admin-register-modal').classList.remove('hidden');
 
 window.showForgotPassword = () => {
-  // Pre-fill email if already typed in login form
   const activeRole = document.getElementById('admin-auth').classList.contains('hidden') ? 'student' : 'admin';
-  const emailInput = activeRole === 'student'
+  const emailVal = activeRole === 'student'
     ? document.getElementById('student-email').value
     : document.getElementById('admin-email').value;
-  if(emailInput) document.getElementById('forgot-email').value = emailInput;
+  if(emailVal) document.getElementById('forgot-email').value = emailVal;
   document.getElementById('forgot-password-modal').classList.remove('hidden');
 };
 
 window.sendPasswordReset = async () => {
   const email = document.getElementById('forgot-email').value.trim();
-  if(!email) return toast('Please enter your email address','error');
+  if(!email) return toast('Please enter your email address', 'error');
   try {
     await sendPasswordResetEmail(auth, email);
-    toast('Password reset email sent! Check your inbox 📧','success');
+    toast('Reset email sent! Check your inbox 📧', 'success');
     closeModal('forgot-password-modal');
     document.getElementById('forgot-email').value = '';
   } catch(e) {
-    if(e.code === 'auth/user-not-found') toast('No account found with that email','error');
-    else if(e.code === 'auth/invalid-email') toast('Please enter a valid email address','error');
-    else toast(e.message,'error');
+    if(e.code === 'auth/user-not-found') toast('No account found with that email', 'error');
+    else if(e.code === 'auth/invalid-email') toast('Please enter a valid email address', 'error');
+    else toast(e.message, 'error');
   }
 };
 
