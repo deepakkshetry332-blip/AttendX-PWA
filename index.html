@@ -1452,7 +1452,12 @@ window.sendPasswordReset = async () => {
   const btn = document.querySelector('#forgot-password-modal .btn-primary');
   btn.textContent='Sending...'; btn.disabled=true;
   try {
-    await sendPasswordResetEmail(auth, email);
+    // actionCodeSettings tells Firebase to redirect back to YOUR Vercel app after reset
+    const actionCodeSettings = {
+      url: 'https://attend-x-pwa-s36o.vercel.app',
+      handleCodeInApp: false
+    };
+    await sendPasswordResetEmail(auth, email, actionCodeSettings);
     toast('Reset link sent! Check your inbox & spam folder 📧','success');
     closeModal('forgot-password-modal');
     document.getElementById('forgot-email').value='';
