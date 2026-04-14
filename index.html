@@ -161,7 +161,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 @keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.03);opacity:.4}}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(15,20,40,0.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,20,40,0.78);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
 .modal{background:var(–surface);border:2px solid var(–border);border-radius:24px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(–shadow-lg)}
 .modal-title{font-size:1.4rem;font-weight:800;margin-bottom:24px;color:var(–text)}
 .modal-close{float:right;background:var(–bg);border:2px solid var(–border);color:var(–muted);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
@@ -189,6 +189,81 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 .top-user{gap:6px}
 .user-badge{padding:6px 10px;font-size:12px}
 }
+
+/* DARK MODE */
+body.dark {
+–bg: #0f1117;
+–surface: #1a1d27;
+–surface2: #22263a;
+–border: #2e3250;
+–text: #e8eaf6;
+–muted: #8892b0;
+–shadow: 0 2px 16px rgba(0,0,0,0.4);
+–shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+}
+body.dark .auth-card { background: var(–surface); }
+body.dark .form-group input, body.dark .form-group select { background: var(–surface2); color: var(–text); border-color: var(–border); }
+body.dark .form-group input:focus { background: var(–surface); }
+body.dark .role-tab.active { background: var(–surface2); }
+body.dark .pin-btn { background: var(–surface2); color: var(–text); }
+body.dark .modal { background: var(–surface); }
+body.dark .data-table th { background: var(–surface2); }
+body.dark .data-table tr:hover td { background: var(–surface2); }
+body.dark .btn-secondary { background: var(–surface2); color: var(–text); border-color: var(–border); }
+body.dark .class-card { background: var(–surface2); }
+body.dark .stat-card { background: var(–surface); }
+body.dark .top-bar { background: var(–surface); }
+body.dark .nav-tabs { background: var(–surface); }
+body.dark .card { background: var(–surface); }
+
+/* THEME TOGGLE BTN */
+.theme-toggle { background:none; border:2px solid var(–border); color:var(–muted); padding:8px 12px; border-radius:10px; cursor:pointer; font-size:16px; transition:all .2s; }
+.theme-toggle:hover { border-color:var(–accent); color:var(–accent); }
+
+/* PASSWORD TOGGLE */
+.pw-wrap { position:relative; }
+.pw-wrap input { padding-right:48px !important; }
+.pw-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:var(–muted); padding:4px; }
+
+/* REMEMBER ME */
+.remember-row { display:flex; align-items:center; gap:10px; margin:12px 0 16px; }
+.remember-row input[type=checkbox] { width:18px; height:18px; accent-color:var(–accent); cursor:pointer; }
+.remember-row label { font-size:14px; color:var(–muted); cursor:pointer; font-weight:600; }
+
+/* ATTENDANCE WARNING BANNER */
+.att-warning { background:linear-gradient(135deg,#fff3cd,#ffe8a1); border:2px solid #ffc107; border-radius:14px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+.att-warning.danger { background:linear-gradient(135deg,#fee2e2,#ffc9c9); border-color:#dc2626; }
+.att-warning-icon { font-size:24px; flex-shrink:0; }
+.att-warning-text { font-size:14px; font-weight:700; color:var(–text); }
+.att-warning-text span { display:block; font-size:12px; font-weight:500; color:var(–muted); margin-top:2px; }
+
+/* CALENDAR */
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:12px; }
+.cal-header { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px; }
+.cal-day-name { text-align:center; font-size:10px; font-weight:800; color:var(–muted); padding:4px 0; text-transform:uppercase; }
+.cal-day { aspect-ratio:1; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; font-family:var(–font-mono); cursor:default; background:var(–bg); color:var(–muted); }
+.cal-day.present { background:#d1fae5; color:var(–green); }
+.cal-day.absent { background:#fee2e2; color:var(–red); }
+.cal-day.today { border:2px solid var(–accent); color:var(–accent); }
+.cal-day.empty { background:transparent; }
+.cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.cal-nav button { background:var(–bg); border:2px solid var(–border); border-radius:10px; padding:8px 14px; cursor:pointer; font-size:16px; color:var(–muted); transition:all .2s; }
+.cal-nav button:hover { border-color:var(–accent); color:var(–accent); }
+.cal-month { font-weight:800; font-size:16px; color:var(–text); }
+.cal-legend { display:flex; gap:16px; justify-content:center; margin-top:12px; }
+.cal-legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(–muted); font-weight:600; }
+.cal-legend-dot { width:12px; height:12px; border-radius:3px; }
+
+/* ANNOUNCEMENT CARD */
+.ann-card { background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(124,58,237,0.08)); border:2px solid rgba(67,97,238,0.2); border-radius:14px; padding:16px; margin-bottom:12px; }
+.ann-card-title { font-weight:800; font-size:15px; color:var(–text); margin-bottom:4px; }
+.ann-card-body { font-size:13px; color:var(–muted); line-height:1.6; }
+.ann-card-meta { font-size:11px; color:var(–muted); margin-top:8px; font-family:var(–font-mono); }
+
+/* INACTIVITY WARNING */
+.inactivity-bar { position:fixed; bottom:0; left:0; right:0; background:var(–yellow); color:#000; padding:12px 20px; text-align:center; font-size:14px; font-weight:700; z-index:9998; transform:translateY(100%); transition:transform .3s; }
+.inactivity-bar.show { transform:translateY(0); }
+
 </style>
 
 </head>
@@ -216,14 +291,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     </div>
     <div id="student-auth">
       <div class="form-group"><label>Email Address</label><input type="email" id="student-email" placeholder="you@college.edu"/></div>
-      <div class="form-group"><label>Password</label><input type="password" id="student-password" placeholder="••••••••"/></div>
+      <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="student-password" placeholder="••••••••"/><button class="pw-eye" onclick="togglePw('student-password',this)" type="button">👁️</button></div></div>
+      <div class="remember-row"><input type="checkbox" id="student-remember"/><label for="student-remember">Remember me</label></div>
       <button class="btn btn-primary" onclick="loginStudent()">Sign In</button>
       <button class="link-btn" onclick="showForgotPassword()">Forgot password?</button>
       <button class="link-btn" onclick="showRegister()">Don't have an account? Register here</button>
     </div>
     <div id="admin-auth" class="hidden">
       <div class="form-group"><label>Teacher Email</label><input type="email" id="admin-email" placeholder="teacher@college.edu"/></div>
-      <div class="form-group"><label>Password</label><input type="password" id="admin-password" placeholder="••••••••"/></div>
+      <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="admin-password" placeholder="••••••••"/><button class="pw-eye" onclick="togglePw('admin-password',this)" type="button">👁️</button></div></div>
+      <div class="remember-row"><input type="checkbox" id="admin-remember"/><label for="admin-remember">Remember me</label></div>
       <button class="btn btn-primary" onclick="loginAdmin()">Teacher Sign In</button>
       <button class="link-btn" onclick="showForgotPassword()">Forgot password?</button>
       <button class="link-btn" onclick="showAdminRegister()">Register as Teacher</button>
@@ -260,19 +337,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
   </div>
 </div>
 
-<!-- FORGOT PASSWORD MODAL -->
-
-<div id="forgot-password-modal" class="modal-overlay hidden">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('forgot-password-modal')">✕</button>
-    <div class="modal-title">🔑 Reset Password</div>
-    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;">Enter your registered email address and we'll send you a password reset link.</p>
-    <div class="form-group"><label>Email Address</label><input type="email" id="forgot-email" placeholder="you@college.edu"/></div>
-    <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
-    <button class="link-btn" onclick="closeModal('forgot-password-modal')">Back to Sign In</button>
-  </div>
-</div>
-
 <!-- EDIT CLASS MODAL -->
 
 <div id="edit-class-modal" class="modal-overlay hidden">
@@ -298,6 +362,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     <div class="top-user">
       <div class="user-badge" id="top-role-badge">Student</div>
       <div class="user-badge" id="top-user-name" style="color:var(--text)">...</div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle dark mode">🌙</button>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </div>
@@ -309,6 +374,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     <button class="nav-tab" onclick="showPanel('my-classes','student-nav')">My Classes</button>
     <button class="nav-tab" onclick="showPanel('check-in','student-nav')">Check In/Out</button>
     <button class="nav-tab" onclick="showPanel('attendance','student-nav')">My Records</button>
+    <button class="nav-tab" onclick="showPanel('calendar','student-nav')">📅 Calendar</button>
   </div>
 
   <!-- ADMIN NAV -->
@@ -319,6 +385,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     <button class="nav-tab" onclick="showPanel('sessions','admin-nav')">Sessions</button>
     <button class="nav-tab" onclick="showPanel('students','admin-nav')">Students</button>
     <button class="nav-tab" onclick="showPanel('reports','admin-nav')">Reports</button>
+    <button class="nav-tab" onclick="showPanel('announcements','admin-nav')">📢 Announce</button>
     <button class="nav-tab" onclick="showPanel('settings','admin-nav')">Settings</button>
   </div>
 
@@ -331,6 +398,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
       <div class="stat-card"><div class="stat-num" id="s-percentage">–%</div><div class="stat-label">Attendance</div></div>
       <div class="stat-card"><div class="stat-num" id="s-streak">–</div><div class="stat-label">Day Streak</div></div>
     </div>
+    <div id="att-warning-banner"></div>
     <div class="card">
       <div class="card-title"><div class="icon">📊</div>Overall Attendance</div>
       <div class="att-circle-wrap">
@@ -351,6 +419,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
         <div style="text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--green)" id="s-present-count">0</div><div style="font-size:13px;color:var(--muted);font-weight:600">Present</div></div>
         <div style="text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--red)" id="s-absent-count">0</div><div style="font-size:13px;color:var(--muted);font-weight:600">Absent</div></div>
       </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon">📢</div>Announcements</div>
+      <div id="student-announcements"><div class="empty-state" style="padding:20px"><span class="icon">📭</span>No announcements</div></div>
     </div>
     <div class="card">
       <div class="card-title"><div class="icon">🔔</div>Active Sessions Now</div>
@@ -424,6 +496,31 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
     <div class="download-row">
       <button class="btn btn-secondary btn-sm" onclick="downloadStudentReport('csv')">⬇ Download CSV</button>
       <button class="btn btn-secondary btn-sm" onclick="downloadStudentReport('json')">⬇ Export JSON</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-calendar">
+    <div class="card">
+      <div class="card-title"><div class="icon">📅</div>Attendance Calendar</div>
+      <div class="cal-nav">
+        <button onclick="calNav(-1)">‹</button>
+        <div class="cal-month" id="cal-month-label">Loading...</div>
+        <button onclick="calNav(1)">›</button>
+      </div>
+      <div class="cal-header">
+        <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div><div class="cal-day-name">Tue</div>
+        <div class="cal-day-name">Wed</div><div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div><div class="cal-day-name">Sat</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#d1fae5;border:2px solid #059669"></div>Present</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#fee2e2;border:2px solid #dc2626"></div>Absent</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="border:2px solid var(--accent)"></div>Today</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon">📊</div>Monthly Summary</div>
+      <div id="cal-summary" style="font-size:15px;color:var(--muted);line-height:2.2"></div>
     </div>
   </div>
 
@@ -524,6 +621,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
       <div id="admin-profile-info" style="font-size:15px;color:var(--muted);line-height:2">Loading...</div>
     </div>
   </div>
+
+  <div class="panel" id="panel-announcements">
+    <div class="card">
+      <div class="card-title"><div class="icon">📢</div>Send Announcement</div>
+      <div class="form-group"><label>Title</label><input type="text" id="ann-title" placeholder="e.g. Class cancelled tomorrow"/></div>
+      <div class="form-group"><label>Message</label><textarea id="ann-body" rows="4" style="width:100%;padding:14px 18px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font-main);font-size:15px;outline:none;resize:vertical;transition:border-color .2s" placeholder="Write your announcement here..." onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea></div>
+      <div class="form-group"><label>Send To (Class)</label><select id="ann-class"><option value="all">📢 All Students</option></select></div>
+      <button class="btn btn-primary" onclick="sendAnnouncement()">📤 Send Announcement</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon">📋</div>Recent Announcements</div>
+      <div id="announcements-list"><div class="empty-state"><span class="icon">📢</span>No announcements yet</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+
+<div id="forgot-password-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('forgot-password-modal')">✕</button>
+    <div class="modal-title">🔑 Reset Password</div>
+    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;">Enter your registered email and we'll send a reset link.</p>
+    <div class="form-group"><label>Email Address</label><input type="email" id="forgot-email" placeholder="you@college.edu"/></div>
+    <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
+    <button class="link-btn" onclick="closeModal('forgot-password-modal')">Back to Sign In</button>
+  </div>
 </div>
 
 <!-- SESSION DETAIL MODAL -->
@@ -547,13 +671,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
   </div>
 </div>
 
-<!-- GUIDE BTN -->
-
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, browserSessionPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, orderBy,
   addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp }
@@ -596,6 +718,7 @@ const dist = (lat1,lon1,lat2,lon2) => {
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 };
 window.closeModal = id => document.getElementById(id).classList.add('hidden');
+
 const downloadFile = (content, filename, type) => {
   const blob = new Blob([content],{type});
   const url = URL.createObjectURL(blob);
@@ -629,12 +752,13 @@ function initApp() {
   document.getElementById('student-nav').classList.toggle('hidden', isAdmin);
   document.getElementById('admin-nav').classList.toggle('hidden', !isAdmin);
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  startInactivityTimer();
   if(isAdmin) {
     document.getElementById('panel-admin-dashboard').classList.add('active');
-    loadAdminDashboard(); loadAdminClasses(); loadAdminSessions(); loadAdminStudents(); loadAdminProfile();
+    loadAdminDashboard(); loadAdminClasses(); loadAdminSessions(); loadAdminStudents(); loadAdminProfile(); loadAnnouncementClasses();
   } else {
     document.getElementById('panel-dashboard').classList.add('active');
-    loadStudentDashboard(); loadStudentClasses(); loadActiveSessions();
+    loadStudentDashboard(); loadStudentClasses(); loadActiveSessions(); loadStudentAnnouncements();
   }
 }
 
@@ -651,19 +775,29 @@ window.showAdminRegister = () => document.getElementById('admin-register-modal')
 window.loginStudent = async () => {
   const email = document.getElementById('student-email').value.trim();
   const pass = document.getElementById('student-password').value;
+  const remember = document.getElementById('student-remember').checked;
   if(!email||!pass) return toast('Fill all fields','error');
-  try { await signInWithEmailAndPassword(auth, email, pass); toast('Welcome back! 👋','success'); }
-  catch(e) { toast(e.message,'error'); }
+  try {
+    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+    await signInWithEmailAndPassword(auth, email, pass);
+    if(remember){ localStorage.setItem('rememberedEmail',email); localStorage.setItem('rememberedRole','student'); }
+    else { localStorage.removeItem('rememberedEmail'); localStorage.removeItem('rememberedRole'); }
+    toast('Welcome back! 👋','success');
+  } catch(e) { toast(e.message,'error'); }
 };
 
 window.loginAdmin = async () => {
   const email = document.getElementById('admin-email').value.trim();
   const pass = document.getElementById('admin-password').value;
+  const remember = document.getElementById('admin-remember').checked;
   if(!email||!pass) return toast('Fill all fields','error');
   try {
+    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const snap = await getDoc(doc(db,'users',cred.user.uid));
     if(!snap.exists()||snap.data().role!=='admin') { await signOut(auth); return toast('Not a teacher account','error'); }
+    if(remember){ localStorage.setItem('rememberedEmail',email); localStorage.setItem('rememberedRole','admin'); }
+    else { localStorage.removeItem('rememberedEmail'); localStorage.removeItem('rememberedRole'); }
     toast('Welcome, Teacher! 🎓','success');
   } catch(e) { toast(e.message,'error'); }
 };
@@ -705,6 +839,7 @@ window.logout = async () => { await signOut(auth); toast('Logged out'); };
 // ===== NAVIGATION =====
 window.showPanel = (panelId, navId) => {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  startInactivityTimer();
   document.getElementById(`panel-${panelId}`).classList.add('active');
   document.querySelectorAll(`#${navId} .nav-tab`).forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
@@ -715,6 +850,8 @@ window.showPanel = (panelId, navId) => {
   if(panelId==='check-in') loadSessionSelectForCheckin();
   if(panelId==='attendance') loadStudentAttendance();
   if(panelId==='my-classes') loadStudentClasses();
+  if(panelId==='calendar') loadCalendar();
+  if(panelId==='announcements'){loadAnnouncementClasses();loadAnnouncementsList();}
 };
 
 // ===== STUDENT DASHBOARD =====
@@ -736,6 +873,7 @@ async function loadStudentDashboard() {
   let streak=0; const today=new Date();
   for(let i=0;i<30;i++){const d=new Date(today);d.setDate(d.getDate()-i);if(dates.includes(d.toDateString()))streak++;else break;}
   document.getElementById('s-streak').textContent = streak;
+  showAttWarning(pct);
   loadActiveSessions();
 }
 
@@ -1255,48 +1393,254 @@ window.saveSettings = async () => {
 };
 
 
+// ===== DARK MODE =====
+window.toggleTheme = () => {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
+};
+(()=>{
+  if(localStorage.getItem('theme')==='dark'){
+    document.body.classList.add('dark');
+    document.addEventListener('DOMContentLoaded',()=>{
+      const b=document.getElementById('theme-btn');
+      if(b) b.textContent='☀️';
+    });
+  }
+})();
+
+// ===== SHOW/HIDE PASSWORD =====
+window.togglePw = (id, btn) => {
+  const inp = document.getElementById(id);
+  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
+  else { inp.type='password'; btn.textContent='👁️'; }
+};
+
+// ===== REMEMBER ME =====
+(()=>{
+  const saved = localStorage.getItem('rememberedEmail');
+  const role = localStorage.getItem('rememberedRole');
+  if(saved && role==='student'){
+    document.addEventListener('DOMContentLoaded',()=>{
+      const el=document.getElementById('student-email');
+      const cb=document.getElementById('student-remember');
+      if(el) el.value=saved;
+      if(cb) cb.checked=true;
+    });
+  }
+  if(saved && role==='admin'){
+    document.addEventListener('DOMContentLoaded',()=>{
+      const el=document.getElementById('admin-email');
+      const cb=document.getElementById('admin-remember');
+      if(el) el.value=saved;
+      if(cb) cb.checked=true;
+    });
+  }
+})();
+
 // ===== FORGOT PASSWORD =====
 window.showForgotPassword = () => {
-  const isAdminTab = !document.getElementById('admin-auth').classList.contains('hidden');
-  const emailVal = isAdminTab
-    ? document.getElementById('admin-email').value
-    : document.getElementById('student-email').value;
+  const isAdmin = !document.getElementById('admin-auth').classList.contains('hidden');
+  const emailVal = isAdmin ? document.getElementById('admin-email').value : document.getElementById('student-email').value;
   document.getElementById('forgot-email').value = emailVal || '';
   document.getElementById('forgot-password-modal').classList.remove('hidden');
 };
 
 window.sendPasswordReset = async () => {
   const email = document.getElementById('forgot-email').value.trim();
-  if(!email) return toast('Please enter your email address', 'error');
-  const btn = event.target;
-  btn.textContent = 'Sending...';
-  btn.disabled = true;
+  if(!email) return toast('Please enter your email address','error');
+  const btn = document.querySelector('#forgot-password-modal .btn-primary');
+  btn.textContent='Sending...'; btn.disabled=true;
   try {
     await sendPasswordResetEmail(auth, email);
-    toast('Reset link sent! Check your inbox and spam folder 📧', 'success');
+    toast('Reset link sent! Check your inbox & spam folder 📧','success');
     closeModal('forgot-password-modal');
-    document.getElementById('forgot-email').value = '';
+    document.getElementById('forgot-email').value='';
   } catch(e) {
-    console.error('Password reset error:', e.code, e.message);
-    if(e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-      toast('No account found with that email address', 'error');
-    } else if(e.code === 'auth/invalid-email') {
-      toast('Please enter a valid email address', 'error');
-    } else if(e.code === 'auth/too-many-requests') {
-      toast('Too many attempts. Please wait a few minutes and try again', 'error');
-    } else {
-      toast('Error: ' + e.message, 'error');
-    }
-  } finally {
-    btn.textContent = 'Send Reset Link';
-    btn.disabled = false;
-  }
+    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential') toast('No account found with that email','error');
+    else if(e.code==='auth/invalid-email') toast('Please enter a valid email address','error');
+    else if(e.code==='auth/too-many-requests') toast('Too many attempts. Wait a few minutes','error');
+    else toast(e.message,'error');
+  } finally { btn.textContent='Send Reset Link'; btn.disabled=false; }
 };
+
+// ===== AUTO LOGOUT (INACTIVITY) =====
+let inactivityTimer, countdownTimer, inactivitySeconds=0;
+const INACTIVITY_LIMIT = 10 * 60; // 10 minutes
+const WARNING_AT = 9 * 60; // warn at 9 min
+
+window.resetInactivity = () => {
+  inactivitySeconds=0;
+  document.getElementById('inactivity-bar').classList.remove('show');
+  clearTimeout(inactivityTimer);
+  startInactivityTimer();
+};
+
+function startInactivityTimer(){
+  if(!currentUser) return;
+  inactivitySeconds=0;
+  clearInterval(countdownTimer);
+  clearTimeout(inactivityTimer);
+  countdownTimer = setInterval(()=>{
+    inactivitySeconds++;
+    if(inactivitySeconds >= WARNING_AT){
+      const bar=document.getElementById('inactivity-bar');
+      bar.classList.add('show');
+      const remaining = INACTIVITY_LIMIT - inactivitySeconds;
+      const el=document.getElementById('inactivity-countdown');
+      if(el) el.textContent=remaining;
+      if(remaining<=0){
+        clearInterval(countdownTimer);
+        signOut(auth);
+        toast('Logged out due to inactivity','error');
+      }
+    }
+  },1000);
+}
+
+['click','keydown','touchstart','scroll'].forEach(ev=>
+  document.addEventListener(ev, ()=>{ if(currentUser) resetInactivity(); }, {passive:true})
+);
+
+// ===== ATTENDANCE WARNING =====
+function showAttWarning(pct){
+  const el=document.getElementById('att-warning-banner');
+  if(!el) return;
+  if(pct < 75 && pct > 0){
+    const isDanger = pct < 60;
+    el.innerHTML=`<div class="att-warning ${isDanger?'danger':''}">
+      <div class="att-warning-icon">${isDanger?'🚨':'⚠️'}</div>
+      <div class="att-warning-text">${isDanger?'Critical':'Low'} Attendance: ${pct}%
+        <span>${isDanger?'Immediate action required!':'You need ≥75% to pass. Attend more classes.'}</span>
+      </div>
+    </div>`;
+  } else { el.innerHTML=''; }
+}
+
+// ===== CALENDAR =====
+let calYear, calMonth, calAttDates={};
+
+window.calNav = (dir) => {
+  calMonth += dir;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  renderCalendar();
+};
+
+async function loadCalendar(){
+  const now=new Date();
+  calYear=now.getFullYear(); calMonth=now.getMonth();
+  const snap=await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
+  calAttDates={};
+  snap.docs.forEach(d=>{
+    const r=d.data();
+    if(r.checkInTime){
+      const dt=r.checkInTime.toDate();
+      const key=dt.getFullYear()+'-'+(dt.getMonth()+1)+'-'+dt.getDate();
+      calAttDates[key]=r.checkIn?'present':'absent';
+    }
+  });
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
+  const grid=document.getElementById('cal-grid');
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date();
+  let html='';
+  for(let i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
+  let present=0,absent=0;
+  for(let d=1;d<=daysInMonth;d++){
+    const key=calYear+'-'+(calMonth+1)+'-'+d;
+    const status=calAttDates[key]||'';
+    const isToday=today.getDate()===d&&today.getMonth()===calMonth&&today.getFullYear()===calYear;
+    if(status==='present') present++;
+    if(status==='absent') absent++;
+    html+=`<div class="cal-day ${status} ${isToday?'today':''}">${d}</div>`;
+  }
+  grid.innerHTML=html;
+  const summaryEl=document.getElementById('cal-summary');
+  const pct=present+absent>0?Math.round(present/(present+absent)*100):0;
+  summaryEl.innerHTML=`<div>✅ <strong>Present:</strong> ${present} days</div>
+    <div>❌ <strong>Absent:</strong> ${absent} days</div>
+    <div>📊 <strong>This Month:</strong> ${pct}%</div>`;
+}
+
+// ===== ANNOUNCEMENTS (TEACHER SEND) =====
+async function loadAnnouncementClasses(){
+  const q=query(collection(db,'classes'),where('adminId','==',currentUser.uid));
+  const snap=await getDocs(q);
+  const sel=document.getElementById('ann-class');
+  if(!sel) return;
+  sel.innerHTML='<option value="all">📢 All Students</option>'+snap.docs.map(d=>`<option value="${d.id}">${d.data().name}</option>`).join('');
+}
+
+async function loadAnnouncementsList(){
+  const q=query(collection(db,'announcements'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc'));
+  const snap=await getDocs(q);
+  const el=document.getElementById('announcements-list');
+  if(!el) return;
+  if(!snap.docs.length){el.innerHTML='<div class="empty-state"><span class="icon">📢</span>No announcements yet</div>';return;}
+  el.innerHTML=snap.docs.map(d=>{
+    const a=d.data();
+    return`<div class="ann-card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div class="ann-card-title">📢 ${a.title||''}</div>
+        <button class="btn btn-danger btn-sm" style="padding:6px 10px;font-size:12px" onclick="deleteAnnouncement('${d.id}')">🗑️</button>
+      </div>
+      <div class="ann-card-body">${a.body||''}</div>
+      <div class="ann-card-meta">${a.className||'All Students'} · ${a.createdAt?a.createdAt.toDate().toLocaleString():'just now'}</div>
+    </div>`;
+  }).join('');
+}
+
+window.sendAnnouncement = async () => {
+  const title=document.getElementById('ann-title').value.trim();
+  const body=document.getElementById('ann-body').value.trim();
+  const classId=document.getElementById('ann-class').value;
+  const classText=document.getElementById('ann-class').selectedOptions[0]?.text||'All Students';
+  if(!title||!body) return toast('Fill title and message','error');
+  try {
+    await addDoc(collection(db,'announcements'),{title,body,classId,className:classText,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp()});
+    toast('Announcement sent! 📢','success');
+    document.getElementById('ann-title').value='';
+    document.getElementById('ann-body').value='';
+    loadAnnouncementsList();
+  } catch(e){ toast(e.message,'error'); }
+};
+
+window.deleteAnnouncement = async (id) => {
+  if(!confirm('Delete this announcement?')) return;
+  await deleteDoc(doc(db,'announcements',id));
+  toast('Deleted','success');
+  loadAnnouncementsList();
+};
+
+// ===== STUDENT ANNOUNCEMENTS =====
+async function loadStudentAnnouncements(){
+  const enrolled=currentUserData.enrolledClasses||[];
+  const el=document.getElementById('student-announcements');
+  if(!el) return;
+  try {
+    const snap=await getDocs(query(collection(db,'announcements'),orderBy('createdAt','desc')));
+    const anns=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.classId==='all'||enrolled.includes(a.classId)).slice(0,5);
+    if(!anns.length){el.innerHTML='<div class="empty-state" style="padding:20px"><span class="icon">📭</span>No announcements</div>';return;}
+    el.innerHTML=anns.map(a=>`<div class="ann-card">
+      <div class="ann-card-title">📢 ${a.title||''}</div>
+      <div class="ann-card-body">${a.body||''}</div>
+      <div class="ann-card-meta">${a.className||'All Students'} · ${a.createdAt?a.createdAt.toDate().toLocaleString():'–'}</div>
+    </div>`).join('');
+  } catch(e){ el.innerHTML=''; }
+}
 
 // PWA
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 </script>
 
+<div class="inactivity-bar" id="inactivity-bar">⚠️ You will be logged out in <span id="inactivity-countdown">60</span>s due to inactivity. <button onclick="resetInactivity()" style="margin-left:12px;background:rgba(0,0,0,0.2);border:none;color:#000;padding:4px 12px;border-radius:6px;cursor:pointer;font-weight:700">Stay Logged In</button></div>
 </body>
 </html>
