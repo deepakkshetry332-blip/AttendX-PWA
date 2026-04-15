@@ -49,7 +49,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 @keyframes load{0%{width:0%;margin-left:0}50%{width:60%}100%{width:0%;margin-left:100%}}
 
 /* AUTH */
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#f0f4ff 0%,#e8edff 100%)}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#f0f4ff 0%,#e8edff 100%);position:relative;z-index:1;}
 .auth-card{background:var(–surface);border:1px solid var(–border);border-radius:24px;padding:40px 36px;width:100%;max-width:440px;box-shadow:var(–shadow-lg)}
 .auth-logo{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
 .auth-sub{color:var(–muted);font-size:14px;margin-bottom:32px;font-family:var(–font-mono)}
@@ -161,8 +161,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 @keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.03);opacity:.4}}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(15,20,40,0.78);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal{background:var(–surface);border:2px solid var(–border);border-radius:24px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(–shadow-lg)}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,12,28,0.92);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(–surface);border:2px solid var(–border);border-radius:24px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(–shadow-lg);position:relative;z-index:1001;}
 .modal-title{font-size:1.4rem;font-weight:800;margin-bottom:24px;color:var(–text)}
 .modal-close{float:right;background:var(–bg);border:2px solid var(–border);color:var(–muted);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 
@@ -317,7 +317,7 @@ body.dark .card { background: var(–surface); }
     <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="John Doe"/></div>
     <div class="form-group"><label>Student ID</label><input type="text" id="reg-sid" placeholder="STU2024001"/></div>
     <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@college.edu"/></div>
-    <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 6 characters"/></div>
+    <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="reg-password" placeholder="Min 6 characters"/><button class="pw-eye" onclick="togglePw('reg-password',this)" type="button">👁️</button></div></div>
     <button class="btn btn-primary" onclick="registerStudent()">Create Account</button>
   </div>
 </div>
@@ -331,7 +331,7 @@ body.dark .card { background: var(–surface); }
     <div class="form-group"><label>Full Name</label><input type="text" id="areg-name" placeholder="Prof. Jane Smith"/></div>
     <div class="form-group"><label>Department</label><input type="text" id="areg-dept" placeholder="Computer Science"/></div>
     <div class="form-group"><label>Email</label><input type="email" id="areg-email" placeholder="teacher@college.edu"/></div>
-    <div class="form-group"><label>Password</label><input type="password" id="areg-password" placeholder="Min 6 characters"/></div>
+    <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="areg-password" placeholder="Min 6 characters"/><button class="pw-eye" onclick="togglePw('areg-password',this)" type="button">👁️</button></div></div>
     <div class="form-group"><label>Admin Access Code</label><input type="text" id="areg-code" placeholder="Provided by college admin"/></div>
     <button class="btn btn-primary" onclick="registerAdmin()">Register Teacher</button>
   </div>
@@ -1452,12 +1452,7 @@ window.sendPasswordReset = async () => {
   const btn = document.querySelector('#forgot-password-modal .btn-primary');
   btn.textContent='Sending...'; btn.disabled=true;
   try {
-    // actionCodeSettings tells Firebase to redirect back to YOUR Vercel app after reset
-    const actionCodeSettings = {
-      url: 'https://attend-x-pwa-s36o.vercel.app',
-      handleCodeInApp: false
-    };
-    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    await sendPasswordResetEmail(auth, email);
     toast('Reset link sent! Check your inbox & spam folder 📧','success');
     closeModal('forgot-password-modal');
     document.getElementById('forgot-email').value='';
