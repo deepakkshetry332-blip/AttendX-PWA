@@ -114,7 +114,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
 .stat-card{background:var(–surface);border:2px solid var(–border);border-radius:18px;padding:24px;text-align:center;box-shadow:var(–shadow)}
-.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;min-height:2.8rem}
 .stat-label{font-size:12px;color:var(–muted);margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
 /* ATTENDANCE CIRCLE */
@@ -146,7 +146,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 .pin-btn:active{transform:scale(0.95)}
 
 /* TABLE */
-.data-table{width:100%;border-collapse:collapse}
+.data-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;}
+.data-table{width:100%;border-collapse:collapse;min-width:400px;}
 .data-table th{padding:14px 16px;text-align:left;font-size:12px;font-weight:800;color:var(–muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(–border);background:var(–bg)}
 .data-table td{padding:14px 16px;border-bottom:1px solid var(–border);font-size:15px;font-weight:500}
 .data-table tr:last-child td{border-bottom:none}
@@ -222,8 +223,16 @@ body.dark .card-title,
 body.dark .modal-title,
 body.dark .class-name,
 body.dark .stat-label,
-body.dark p,
-body.dark div {
+body.dark p {
+color: var(–text);
+}
+body.dark .top-bar,
+body.dark .nav-tabs,
+body.dark .card,
+body.dark .stat-card,
+body.dark .class-card,
+body.dark .modal,
+body.dark .auth-card {
 color: var(–text);
 }
 body.dark .form-group input,
@@ -272,6 +281,14 @@ body.dark .pin-btn { background: var(–surface2); border-color: var(–border);
 body.dark .confirm-box { background: #3d1515; border-color: #7f1d1d; }
 body.dark .user-badge { background: var(–surface2); border-color: var(–border); }
 body.dark .inactivity-bar { background: #d97706; }
+
+body.dark .stat-num {
+background: linear-gradient(135deg,#818cf8,#a78bfa);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+body.dark .att-pct { color: #818cf8 !important; -webkit-text-fill-color: #818cf8 !important; }
 
 /* THEME TOGGLE BTN */
 .theme-toggle { background:none; border:2px solid var(–border); color:var(–muted); padding:8px 12px; border-radius:10px; cursor:pointer; font-size:16px; transition:all .2s; }
@@ -1356,7 +1373,7 @@ async function loadAdminStudents() {
   const snap=await getDocs(query(collection(db,'users'),where('role','==','student')));
   const students=snap.docs.map(d=>({id:d.id,...d.data()}));
   const el=document.getElementById('admin-students-table');
-  el.innerHTML=students.length?`<table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
+  el.innerHTML=students.length?`<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
   ${students.map(s=>`<tr>
     <td style="font-weight:700">${s.name||'–'}</td>
     <td style="font-family:var(--font-mono)">${s.studentId||'–'}</td>
@@ -1364,7 +1381,7 @@ async function loadAdminStudents() {
     <td>${(s.enrolledClasses||[]).length}</td>
     <td><button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${s.name}')">🗑️ Delete</button></td>
   </tr>`).join('')}
-  </tbody></table>`:'<div class="empty-state"><span class="icon">👥</span>No students yet</div>';
+  </tbody></table></div>`:'<div class="empty-state"><span class="icon">👥</span>No students yet</div>';
 }
 
 window.deleteStudent = async (studentId, studentName) => {
