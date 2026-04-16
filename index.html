@@ -97,10 +97,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 
 /* PANELS */
 .panel{display:none;padding:24px 16px;max-width:900px;margin:0 auto;width:100%}
-.panel.active{display:block}
+.panel.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
 /* CARDS */
-.card{background:var(–surface);border:2px solid var(–border);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:var(–shadow)}
+.card{background:var(–surface);border:1.5px solid var(–border);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:var(–shadow);transition:box-shadow .2s,transform .2s}
 .card-title{font-size:18px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:var(–text)}
 .card-title .icon{width:36px;height:36px;background:linear-gradient(135deg,rgba(67,97,238,0.15),rgba(124,58,237,0.15));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
 
@@ -114,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
 .stat-card{background:var(–surface);border:2px solid var(–border);border-radius:18px;padding:24px;text-align:center;box-shadow:var(–shadow)}
-.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;min-height:2.8rem}
+.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .stat-label{font-size:12px;color:var(–muted);margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
 /* ATTENDANCE CIRCLE */
@@ -136,18 +137,73 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 .class-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 
 /* PIN PAD */
+/* ── REDESIGNED PIN PAD ── */
 .pin-pad{display:flex;flex-direction:column;align-items:center;gap:20px}
-.pin-display{display:flex;gap:16px;margin-bottom:8px}
-.pin-dot{width:18px;height:18px;border-radius:50%;border:3px solid var(–border);transition:all .2s}
-.pin-dot.filled{background:var(–accent);border-color:var(–accent)}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:260px}
-.pin-btn{padding:22px;background:var(–surface);border:2px solid var(–border);border-radius:14px;color:var(–text);font-size:22px;font-family:var(–font-mono);font-weight:700;cursor:pointer;transition:all .15s;text-align:center;box-shadow:var(–shadow)}
-.pin-btn:hover{background:var(–accent);color:#fff;border-color:var(–accent)}
-.pin-btn:active{transform:scale(0.95)}
+
+/* PIN display boxes showing typed digits */
+.pin-display{display:flex;gap:12px;margin:8px 0}
+.pin-box{
+width:56px;height:64px;border-radius:14px;
+border:2px solid var(–border);
+background:var(–surface);
+display:flex;align-items:center;justify-content:center;
+font-size:28px;font-family:var(–font-mono);font-weight:800;
+color:var(–accent);
+transition:all .2s cubic-bezier(.34,1.56,.64,1);
+box-shadow:0 2px 8px rgba(67,97,238,0.08);
+position:relative;
+}
+.pin-box.active{
+border-color:var(–accent);
+box-shadow:0 0 0 3px rgba(67,97,238,0.15),0 2px 8px rgba(67,97,238,0.1);
+transform:scale(1.06);
+}
+.pin-box.filled{
+border-color:var(–accent);
+background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(124,58,237,0.08));
+}
+.pin-box .pin-cursor{
+width:2px;height:28px;background:var(–accent);
+animation:blink .8s step-end infinite;
+border-radius:2px;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.pin-box.shake{animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+/* PIN grid buttons */
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:270px}
+.pin-btn{
+padding:0;height:64px;
+background:var(–surface);
+border:1.5px solid var(–border);
+border-radius:16px;
+color:var(–text);
+font-size:22px;font-family:var(–font-mono);font-weight:700;
+cursor:pointer;
+transition:all .12s;
+text-align:center;
+box-shadow:0 2px 8px rgba(67,97,238,0.06);
+display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+position:relative;overflow:hidden;
+}
+.pin-btn .pin-btn-num{font-size:22px;font-weight:800;line-height:1;}
+.pin-btn .pin-btn-sub{font-size:8px;font-weight:700;letter-spacing:.12em;color:var(–muted);text-transform:uppercase;}
+.pin-btn:hover{background:rgba(67,97,238,0.06);border-color:var(–accent);}
+.pin-btn:active{transform:scale(0.91);background:var(–accent);color:#fff;border-color:var(–accent);}
+.pin-btn::after{
+content:’’;position:absolute;inset:0;border-radius:16px;
+background:radial-gradient(circle at center,rgba(67,97,238,0.25) 0%,transparent 70%);
+opacity:0;transition:opacity .3s;
+}
+.pin-btn:active::after{opacity:1;}
 
 /* TABLE */
-.data-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;}
-.data-table{width:100%;border-collapse:collapse;min-width:400px;}
+
+/* TABLE OVERFLOW FIX */
+.table-scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;border:1px solid var(–border);}
+.data-table{width:100%;border-collapse:collapse;min-width:420px;}
+
 .data-table th{padding:14px 16px;text-align:left;font-size:12px;font-weight:800;color:var(–muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(–border);background:var(–bg)}
 .data-table td{padding:14px 16px;border-bottom:1px solid var(–border);font-size:15px;font-weight:500}
 .data-table tr:last-child td{border-bottom:none}
@@ -226,15 +282,6 @@ body.dark .stat-label,
 body.dark p {
 color: var(–text);
 }
-body.dark .top-bar,
-body.dark .nav-tabs,
-body.dark .card,
-body.dark .stat-card,
-body.dark .class-card,
-body.dark .modal,
-body.dark .auth-card {
-color: var(–text);
-}
 body.dark .form-group input,
 body.dark .form-group select,
 body.dark textarea {
@@ -282,13 +329,21 @@ body.dark .confirm-box { background: #3d1515; border-color: #7f1d1d; }
 body.dark .user-badge { background: var(–surface2); border-color: var(–border); }
 body.dark .inactivity-bar { background: #d97706; }
 
+body.dark .pin-box { background: var(–surface2); border-color: var(–border); color: #818cf8; }
+body.dark .pin-box.filled { background: rgba(129,140,248,0.1); border-color: #818cf8; }
+body.dark .pin-box.active { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,0.2); }
+body.dark .pin-cursor { background: #818cf8; }
+body.dark .pin-btn { background: var(–surface2); border-color: var(–border); color: var(–text); }
+body.dark .pin-btn:hover { border-color: #818cf8; background: rgba(129,140,248,0.1); }
+body.dark .pin-btn:active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+body.dark .pin-btn-sub { color: var(–muted); }
+
 body.dark .stat-num {
 background: linear-gradient(135deg,#818cf8,#a78bfa);
 -webkit-background-clip: text;
 -webkit-text-fill-color: transparent;
 background-clip: text;
 }
-body.dark .att-pct { color: #818cf8 !important; -webkit-text-fill-color: #818cf8 !important; }
 
 /* THEME TOGGLE BTN */
 .theme-toggle { background:none; border:2px solid var(–border); color:var(–muted); padding:8px 12px; border-radius:10px; cursor:pointer; font-size:16px; transition:all .2s; }
@@ -467,10 +522,10 @@ body.dark .att-pct { color: #818cf8 !important; -webkit-text-fill-color: #818cf8
 
   <div class="panel active" id="panel-dashboard">
     <div class="stats-grid" id="student-stats">
-      <div class="stat-card"><div class="stat-num" id="s-total-classes">–</div><div class="stat-label">Classes</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-attended">–</div><div class="stat-label">Attended</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-percentage">–%</div><div class="stat-label">Attendance</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-streak">–</div><div class="stat-label">Day Streak</div></div>
+      <div class="stat-card"><div style="font-size:22px;margin-bottom:6px">📚</div><div class="stat-num" id="s-total-classes">–</div><div class="stat-label">Classes</div></div>
+      <div class="stat-card"><div style="font-size:22px;margin-bottom:6px">✅</div><div class="stat-num" id="s-attended">–</div><div class="stat-label">Attended</div></div>
+      <div class="stat-card"><div style="font-size:22px;margin-bottom:6px">📊</div><div class="stat-num" id="s-percentage">–%</div><div class="stat-label">Attendance</div></div>
+      <div class="stat-card"><div style="font-size:22px;margin-bottom:6px">🔥</div><div class="stat-num" id="s-streak">–</div><div class="stat-label">Day Streak</div></div>
     </div>
     <div id="att-warning-banner"></div>
     <div class="card">
@@ -537,26 +592,28 @@ body.dark .att-pct { color: #818cf8 !important; -webkit-text-fill-color: #818cf8
           <div class="chip chip-blue" id="checkin-mode-chip">CHECK-IN MODE</div>
         </div>
         <div class="pin-pad">
-          <div style="font-size:15px;color:var(--muted);text-align:center;font-weight:600">Enter the PIN provided by your teacher</div>
+          <div style="font-size:14px;color:var(--muted);text-align:center;font-weight:600;font-family:var(--font-mono)">Enter the PIN given by your teacher</div>
           <div class="pin-display" id="pin-display">
-            <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
-            <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+            <div class="pin-box" id="pbox-0"><div class="pin-cursor"></div></div>
+            <div class="pin-box" id="pbox-1"></div>
+            <div class="pin-box" id="pbox-2"></div>
+            <div class="pin-box" id="pbox-3"></div>
           </div>
           <div class="pin-grid">
-            <button class="pin-btn" onclick="pinPress('1')">1</button>
-            <button class="pin-btn" onclick="pinPress('2')">2</button>
-            <button class="pin-btn" onclick="pinPress('3')">3</button>
-            <button class="pin-btn" onclick="pinPress('4')">4</button>
-            <button class="pin-btn" onclick="pinPress('5')">5</button>
-            <button class="pin-btn" onclick="pinPress('6')">6</button>
-            <button class="pin-btn" onclick="pinPress('7')">7</button>
-            <button class="pin-btn" onclick="pinPress('8')">8</button>
-            <button class="pin-btn" onclick="pinPress('9')">9</button>
-            <button class="pin-btn" onclick="pinPress('clear')" style="font-size:13px">CLR</button>
-            <button class="pin-btn" onclick="pinPress('0')">0</button>
-            <button class="pin-btn" onclick="pinPress('back')">⌫</button>
+            <button class="pin-btn" onclick="pinPress('1')"><span class="pin-btn-num">1</span></button>
+            <button class="pin-btn" onclick="pinPress('2')"><span class="pin-btn-num">2</span><span class="pin-btn-sub">ABC</span></button>
+            <button class="pin-btn" onclick="pinPress('3')"><span class="pin-btn-num">3</span><span class="pin-btn-sub">DEF</span></button>
+            <button class="pin-btn" onclick="pinPress('4')"><span class="pin-btn-num">4</span><span class="pin-btn-sub">GHI</span></button>
+            <button class="pin-btn" onclick="pinPress('5')"><span class="pin-btn-num">5</span><span class="pin-btn-sub">JKL</span></button>
+            <button class="pin-btn" onclick="pinPress('6')"><span class="pin-btn-num">6</span><span class="pin-btn-sub">MNO</span></button>
+            <button class="pin-btn" onclick="pinPress('7')"><span class="pin-btn-num">7</span><span class="pin-btn-sub">PQRS</span></button>
+            <button class="pin-btn" onclick="pinPress('8')"><span class="pin-btn-num">8</span><span class="pin-btn-sub">TUV</span></button>
+            <button class="pin-btn" onclick="pinPress('9')"><span class="pin-btn-num">9</span><span class="pin-btn-sub">WXYZ</span></button>
+            <button class="pin-btn" onclick="pinPress('clear')"><span class="pin-btn-num" style="font-size:13px">CLR</span></button>
+            <button class="pin-btn" onclick="pinPress('0')"><span class="pin-btn-num">0</span></button>
+            <button class="pin-btn" onclick="pinPress('back')"><span class="pin-btn-num">⌫</span></button>
           </div>
-          <button class="btn btn-primary" style="width:260px" onclick="submitPin()">✓ Submit PIN</button>
+          <button class="btn btn-primary" style="width:270px;font-size:17px;padding:17px" onclick="submitPin()">✓ Confirm PIN</button>
         </div>
       </div>
     </div>
@@ -999,7 +1056,7 @@ async function loadStudentAttendance() {
   const records = snap.docs.map(d=>({id:d.id,...d.data()}));
   window._studentAttRecords = records;
   const el = document.getElementById('student-attendance-table');
-  el.innerHTML = records.length ? `<table class="data-table"><thead><tr>
+  el.innerHTML = records.length ? `<div class="table-scroll-wrap"><table class="data-table"><thead><tr>
     <th>Class</th><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th>
   </tr></thead><tbody>${records.map(r=>`<tr>
     <td style="font-weight:700">${r.className||'–'}</td>
@@ -1047,6 +1104,8 @@ window.loadSessionForCheckin = async () => {
   document.getElementById('checkin-mode-chip').textContent = currentCheckinMode==='in' ? '🟢 CHECK-IN MODE' : '🔴 CHECK-OUT MODE';
   document.getElementById('checkin-mode-chip').className = 'chip '+(currentCheckinMode==='in'?'chip-green':'chip-red');
   currentPin=''; updatePinDisplay();
+  // Reset all pin boxes
+  for(let i=0;i<4;i++){const b=document.getElementById(`pbox-${i}`);if(b){b.innerHTML=i===0?'<div class="pin-cursor"></div>':'';b.classList.remove('filled','active');if(i===0)b.classList.add('active');}}
   checkGeofence(selectedSessionForCheckin);
 };
 
@@ -1070,12 +1129,44 @@ function checkGeofence(session) {
 window.pinPress = key => {
   if(key==='clear') currentPin='';
   else if(key==='back') currentPin=currentPin.slice(0,-1);
-  else if(currentPin.length<4) currentPin+=key;
+  else if(currentPin.length<4) { currentPin+=key; animatePinBox(currentPin.length-1); }
   updatePinDisplay();
 };
 
+function animatePinBox(idx) {
+  const box = document.getElementById(`pbox-${idx}`);
+  if(!box) return;
+  box.style.transform='scale(1.12)';
+  setTimeout(()=>{ box.style.transform=''; }, 120);
+}
+
 function updatePinDisplay() {
-  for(let i=0;i<4;i++) document.getElementById(`dot-${i}`).classList.toggle('filled',i<currentPin.length);
+  for(let i=0;i<4;i++){
+    const box = document.getElementById(`pbox-${i}`);
+    if(!box) continue;
+    if(i < currentPin.length){
+      // Show the typed digit
+      box.innerHTML = currentPin[i];
+      box.classList.add('filled');
+      box.classList.remove('active');
+    } else if(i === currentPin.length){
+      // Show blinking cursor on next empty box
+      box.innerHTML = '<div class="pin-cursor"></div>';
+      box.classList.remove('filled');
+      box.classList.add('active');
+    } else {
+      // Empty box
+      box.innerHTML = '';
+      box.classList.remove('filled','active');
+    }
+  }
+}
+
+function shakePinDisplay(){
+  for(let i=0;i<4;i++){
+    const box=document.getElementById(`pbox-${i}`);
+    if(box){ box.classList.add('shake'); setTimeout(()=>box.classList.remove('shake'),400); }
+  }
 }
 
 window.submitPin = async () => {
@@ -1084,7 +1175,7 @@ window.submitPin = async () => {
   if(!selectedSessionForCheckin) return toast('No session selected','error');
   const session = selectedSessionForCheckin;
   const expectedPin = currentCheckinMode==='in' ? session.checkInPin : session.checkOutPin;
-  if(currentPin!==expectedPin) { toast('Incorrect PIN ❌','error'); currentPin=''; updatePinDisplay(); return; }
+  if(currentPin!==expectedPin) { toast('Incorrect PIN ❌','error'); shakePinDisplay(); setTimeout(()=>{ currentPin=''; updatePinDisplay(); },400); return; }
   const now = serverTimestamp();
   try {
     if(currentCheckinMode==='in') {
@@ -1373,7 +1464,7 @@ async function loadAdminStudents() {
   const snap=await getDocs(query(collection(db,'users'),where('role','==','student')));
   const students=snap.docs.map(d=>({id:d.id,...d.data()}));
   const el=document.getElementById('admin-students-table');
-  el.innerHTML=students.length?`<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
+  el.innerHTML=students.length?`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
   ${students.map(s=>`<tr>
     <td style="font-weight:700">${s.name||'–'}</td>
     <td style="font-family:var(--font-mono)">${s.studentId||'–'}</td>
