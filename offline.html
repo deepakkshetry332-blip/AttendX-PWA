@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AttendX — Offline</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root { --accent: #4361ee; --accent2: #7c3aed; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f0f4ff, #e8edff);
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 48px 36px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(67,97,238,0.15);
+    border: 2px solid #dde3f0;
+  }
+  .logo {
+    font-size: 2rem; font-weight: 800; margin-bottom: 8px;
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .icon { font-size: 4rem; margin: 24px 0; display: block; }
+  h1 { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 12px; }
+  p { font-size: 14px; color: #64748b; line-height: 1.7; margin-bottom: 24px; }
+  .btn {
+    display: inline-block; padding: 14px 32px;
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    color: #fff; border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    text-decoration: none; transition: transform .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .tips { margin-top: 28px; background: #f8faff; border-radius: 14px; padding: 16px; text-align: left; }
+  .tips-title { font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+  .tip { font-size: 13px; color: #64748b; padding: 4px 0; }
+  .offline-dot { display: inline-block; width: 10px; height: 10px; background: #dc2626; border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">AttendX</div>
+  <span class="icon">📡</span>
+  <div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+    <span class="offline-dot"></span>
+    <span style="font-size:13px;color:#dc2626;font-weight:700">You're offline</span>
+  </div>
+  <h1>No Internet Connection</h1>
+  <p>AttendX needs an internet connection to load your attendance data and communicate with Firebase.<br><br>Please check your WiFi or mobile data and try again.</p>
+  <button class="btn" onclick="window.location.reload()">🔄 Try Again</button>
+  <div class="tips">
+    <div class="tips-title">While offline you can't:</div>
+    <div class="tip">❌ Log in or register</div>
+    <div class="tip">❌ Check in or check out</div>
+    <div class="tip">❌ View attendance records</div>
+    <div class="tip">❌ Start or end sessions</div>
+  </div>
+</div>
+<script>
+  // Auto-reload when connection returns
+  window.addEventListener('online', () => window.location.replace('/'));
+</script>
+</body>
+</html>
