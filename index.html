@@ -865,12 +865,25 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
       <div class="form-group"><label>New PIN</label><input type="password" id="new-pin" placeholder="4-8 digits" maxlength="8"/></div>
       <div class="form-group"><label>Confirm New PIN</label><input type="password" id="confirm-pin" placeholder="Repeat new PIN" maxlength="8"/></div>
       <button class="btn btn-primary btn-sm" onclick="changeAdminPin()">Update PIN</button>
+      <button class="link-btn" onclick="showResetPinModal()" style="margin-top:12px">Forgot PIN? Reset with your login password</button>
     </div>
     <div class="card">
       <div class="card-title"><div class="icon">🏫</div>College Settings</div>
       <div class="form-group"><label>College Name</label><input type="text" id="college-name" placeholder="Your College Name"/></div>
       <div class="form-group"><label>Teacher Registration Code</label><input type="text" id="access-code" placeholder="Code for teacher registration"/></div>
       <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save Settings</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon">🔐</div>Teacher Registration Code</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Share this code with teachers who need to register. If a teacher forgets it, they can ask you for it here.</p>
+      <div style="background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(124,58,237,0.08));border:2px dashed var(--accent);border-radius:14px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Current Code</div>
+          <div id="teacher-code-value" style="font-size:28px;font-weight:800;font-family:var(--font-mono);color:var(--accent);letter-spacing:.1em">––</div>
+        </div>
+        <button onclick="copyTeacherCode()" style="background:var(--accent);border:none;color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap">📋 Copy Code</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;font-family:var(--font-mono)">⚠️ Only share this with verified teachers from your institute.</p>
     </div>
     <div class="card">
       <div class="card-title"><div class="icon">👤</div>My Profile</div>
@@ -927,11 +940,30 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
   </div>
 </div>
 
+<!-- RESET PIN MODAL -->
+
+<div id="reset-pin-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('reset-pin-modal')">&#x2715;</button>
+    <div class="modal-title">&#x1F511; Reset PIN</div>
+    <p style="font-size:14px;color:var(--muted);font-family:var(--font-mono);margin-bottom:24px;line-height:1.6">Verify your login password to reset your PIN back to <strong>1234</strong>. You can change it again after.</p>
+    <div class="form-group">
+      <label>Your Login Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="reset-pin-password" placeholder="Enter your login password"/>
+        <button class="pw-eye" onclick="togglePw('reset-pin-password',this)" type="button">&#x1F441;&#xFE0F;</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="resetPinWithPassword()">&#x1F511; Reset PIN to 1234</button>
+    <button class="link-btn" onclick="closeModal('reset-pin-modal')">Cancel</button>
+  </div>
+</div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, browserSessionPersistence, setPersistence }
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, browserSessionPersistence, setPersistence, reauthenticateWithCredential, EmailAuthProvider }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, orderBy,
   addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp }
@@ -1785,7 +1817,13 @@ async function loadAdminProfile() {
   if(!currentUserData) return;
   el.innerHTML=`<div><strong>Name:</strong> ${currentUserData.name}</div><div><strong>Email:</strong> ${currentUser.email}</div><div><strong>Department:</strong> ${currentUserData.department||'–'}</div><div><strong>Current PIN:</strong> <span style="color:var(--accent);font-family:var(--font-mono)">${currentUserData.adminPin||'1234'}</span></div>`;
   const settingsSnap=await getDoc(doc(db,'settings','global'));
-  if(settingsSnap.exists()){const s=settingsSnap.data();document.getElementById('college-name').value=s.collegeName||'';document.getElementById('access-code').value=s.adminCode||'';}
+  if(settingsSnap.exists()){
+    const s=settingsSnap.data();
+    document.getElementById('college-name').value=s.collegeName||'';
+    document.getElementById('access-code').value=s.adminCode||'';
+    const codeEl=document.getElementById('teacher-code-value');
+    if(codeEl) codeEl.textContent = s.adminCode || '(not set)';
+  }
 }
 
 window.changeAdminPin = async () => {
@@ -1803,11 +1841,48 @@ window.changeAdminPin = async () => {
   loadAdminProfile();
 };
 
+window.showResetPinModal = () => {
+  document.getElementById('reset-pin-password').value = '';
+  document.getElementById('reset-pin-modal').classList.remove('hidden');
+};
+
+window.resetPinWithPassword = async () => {
+  const password = document.getElementById('reset-pin-password').value;
+  if(!password) return toast('Please enter your login password','error');
+  const btn = document.querySelector('#reset-pin-modal .btn-primary');
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+  try {
+    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    await reauthenticateWithCredential(currentUser, credential);
+    await updateDoc(doc(db,'users',currentUser.uid),{adminPin:'1234'});
+    currentUserData.adminPin = '1234';
+    toast('PIN reset to 1234 ✅ Please change it right away!','success');
+    closeModal('reset-pin-modal');
+    loadAdminProfile();
+  } catch(e) {
+    if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') toast('Incorrect password ❌','error');
+    else if(e.code==='auth/too-many-requests') toast('Too many attempts. Try again later.','error');
+    else toast(e.message,'error');
+  } finally { btn.textContent = '🔑 Reset PIN to 1234'; btn.disabled = false; }
+};
+
 window.saveSettings = async () => {
   const collegeName=document.getElementById('college-name').value.trim();
   const adminCode=document.getElementById('access-code').value.trim();
   await setDoc(doc(db,'settings','global'),{collegeName,adminCode},{merge:true});
   toast('Settings saved! ✅','success');
+  const codeEl=document.getElementById('teacher-code-value');
+  if(codeEl) codeEl.textContent = adminCode || '(not set)';
+};
+
+window.copyTeacherCode = () => {
+  const code = document.getElementById('teacher-code-value').textContent;
+  if(!code || code==='(not set)' || code==='––') return toast('No code set yet. Save one in College Settings above.','error');
+  navigator.clipboard.writeText(code).then(()=>toast('Teacher code copied! 📋','success')).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Teacher code copied! 📋','success');
+  });
 };
 
 
