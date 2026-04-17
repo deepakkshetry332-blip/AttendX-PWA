@@ -664,10 +664,31 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
   </div>
 
   <div class="panel" id="panel-my-classes">
-    <div class="card">
-      <div class="card-title"><div class="icon">📚</div>My Enrolled Classes</div>
-      <div id="student-classes-list" class="class-grid"><div class="empty-state"><span class="icon">📚</span>Not enrolled in any classes yet.<br>Ask your teacher to enroll you.</div></div>
+
+```
+<!-- JOIN CLASS WITH CODE -->
+<div class="card">
+  <div class="card-title"><div class="icon">🔑</div>Join a Class</div>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6">Ask your teacher for the 6-character join code and enter it below to instantly enroll yourself.</p>
+  <div style="display:flex;gap:10px;align-items:flex-end">
+    <div class="form-group" style="flex:1;margin-bottom:0">
+      <label>Class Join Code</label>
+      <input type="text" id="join-code-input" placeholder="e.g. AB3X7K" maxlength="6"
+        style="text-transform:uppercase;font-family:var(--font-mono);font-size:20px;font-weight:700;letter-spacing:.12em;text-align:center"
+        oninput="this.value=this.value.toUpperCase()"/>
     </div>
+    <button class="btn btn-primary btn-sm" style="padding:14px 22px;font-size:15px;margin-bottom:0;white-space:nowrap" onclick="joinClassWithCode()">Join →</button>
+  </div>
+  <div id="join-code-status" style="margin-top:10px;font-size:13px;color:var(--muted);font-family:var(--font-mono)"></div>
+</div>
+
+<!-- ENROLLED CLASSES LIST -->
+<div class="card">
+  <div class="card-title"><div class="icon">📚</div>My Enrolled Classes</div>
+  <div id="student-classes-list" class="class-grid"><div class="empty-state"><span class="icon">📚</span>Not enrolled yet. Enter a join code above!</div></div>
+</div>
+```
+
   </div>
 
   <div class="panel" id="panel-check-in">
@@ -944,6 +965,10 @@ window.toast = (msg, type='info') => {
   setTimeout(() => t.remove(), 3500);
 };
 
+const genEnrollCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no confusable chars
+  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+};
 const genPin = (len=4) => Array.from({length:len}, () => Math.floor(Math.random()*10)).join('');
 const fmtDate = ts => { if(!ts) return '–'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); };
 const dist = (lat1,lon1,lat2,lon2) => {
@@ -1090,6 +1115,77 @@ window.showPanel = (panelId, navId) => {
 };
 
 // ===== STUDENT DASHBOARD =====
+
+// ===== JOIN CLASS WITH CODE (Student self-enroll) =====
+window.joinClassWithCode = async () => {
+  const inputEl = document.getElementById('join-code-input');
+  const statusEl = document.getElementById('join-code-status');
+  const code = inputEl.value.trim().toUpperCase();
+
+  if(code.length !== 6) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠️ Join code must be exactly 6 characters';
+    return;
+  }
+
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = '🔍 Searching for class...';
+
+  try {
+    // Search all classes for this enrollCode
+    const q = query(collection(db,'classes'), where('enrollCode','==',code));
+    const snap = await getDocs(q);
+
+    if(snap.empty) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '❌ No class found with that code. Check with your teacher.';
+      return;
+    }
+
+    const classDoc = snap.docs[0];
+    const classId = classDoc.id;
+    const classData = classDoc.data();
+
+    // Check if already enrolled
+    const alreadyEnrolled = (currentUserData.enrolledClasses||[]).includes(classId);
+    if(alreadyEnrolled) {
+      statusEl.style.color = 'var(--yellow)';
+      statusEl.textContent = `⚠️ You are already enrolled in "${classData.name}"`;
+      return;
+    }
+
+    // Enroll student
+    const studentRef = doc(db,'users',currentUser.uid);
+    const classRef = doc(db,'classes',classId);
+
+    // Update student's enrolledClasses
+    const newEnrolled = [...(currentUserData.enrolledClasses||[]), classId];
+    await updateDoc(studentRef, { enrolledClasses: newEnrolled });
+
+    // Update class enrolledStudents
+    const classEnrolled = [...(classData.enrolledStudents||[])];
+    if(!classEnrolled.includes(currentUser.uid)) classEnrolled.push(currentUser.uid);
+    await updateDoc(classRef, { enrolledStudents: classEnrolled });
+
+    // Update local user data
+    currentUserData.enrolledClasses = newEnrolled;
+
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✅ Successfully joined "${classData.name}"!`;
+    inputEl.value = '';
+
+    toast(`Joined "${classData.name}" 🎉`, 'success');
+
+    // Refresh student dashboard and class list
+    loadStudentClasses();
+    loadStudentDashboard();
+
+  } catch(e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '❌ Error: ' + e.message;
+  }
+};
+
 async function loadStudentDashboard() {
   const attSnap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
   const records = attSnap.docs.map(d => d.data());
@@ -1344,6 +1440,16 @@ async function loadAdminClasses() {
   const snap = await getDocs(q);
   const classes = snap.docs.map(d=>({id:d.id,...d.data()}));
   window._adminClasses = classes;
+  // Backfill missing enrollCodes for older classes
+  for(const c of classes) {
+    if(!c.enrollCode) {
+      try {
+        const newCode = genEnrollCode();
+        await updateDoc(doc(db,'classes',c.id),{enrollCode:newCode});
+        c.enrollCode = newCode;
+      } catch(e) {}
+    }
+  }
   const el = document.getElementById('admin-classes-list');
   el.innerHTML = classes.length ? classes.map(c=>`
     <div class="class-card">
@@ -1352,6 +1458,13 @@ async function loadAdminClasses() {
           <div class="class-name">${c.name}</div>
           <div class="class-meta">${c.code} • ${c.schedule||''} • ${c.room||''}</div>
           <div style="font-size:13px;color:var(--muted);font-weight:600">📅 ${c.time||''} | 📊 ${c.totalSessions||0} sessions</div>
+          <div style="margin-top:10px;background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(124,58,237,0.08));border:1.5px dashed var(--accent);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Student Join Code</div>
+              <div style="font-size:22px;font-weight:800;font-family:var(--font-mono);color:var(--accent);letter-spacing:.12em">${c.enrollCode||'N/A'}</div>
+            </div>
+            <button onclick="copyCode('${c.enrollCode||''}','${c.name}')" style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">📋 Copy</button>
+          </div>
         </div>
       </div>
       <div class="class-actions">
@@ -1375,10 +1488,12 @@ window.createClass = async () => {
   const total=parseInt(document.getElementById('new-class-total').value)||40;
   if(!name||!code) return toast('Class name and code required','error');
   try {
-    await addDoc(collection(db,'classes'),{name,code,schedule,time,room,totalSessions:total,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp(),enrolledStudents:[]});
+    const enrollCode = genEnrollCode(); // unique 6-char join code for students
+    await addDoc(collection(db,'classes'),{name,code,schedule,time,room,totalSessions:total,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp(),enrolledStudents:[],enrollCode});
     toast('Class created! 🎉','success');
     ['new-class-name','new-class-code','new-class-schedule','new-class-time','new-class-room','new-class-total'].forEach(id=>document.getElementById(id).value='');
     loadAdminClasses();
+    loadAdminDashboard();
   } catch(e) { toast(e.message,'error'); }
 };
 
@@ -1413,6 +1528,7 @@ window.saveEditClass = async () => {
     toast('Class updated! ✅','success');
     closeModal('edit-class-modal');
     loadAdminClasses();
+    loadAdminDashboard();
   } catch(e) { toast(e.message,'error'); }
 };
 
@@ -1431,6 +1547,7 @@ window.deleteClass = async (classId, className) => {
     }
     toast(`"${className}" deleted ✅`,'success');
     loadAdminClasses();
+    loadAdminDashboard();
   } catch(e) { toast(e.message,'error'); }
 };
 
@@ -1476,6 +1593,16 @@ window.toggleEnroll = async (studentId, classId, isEnrolled) => {
 };
 
 // ===== SESSIONS =====
+
+window.copyCode = (code, className) => {
+  if(!code) return toast('No join code for this class yet. Delete and recreate it.','error');
+  navigator.clipboard.writeText(code).then(()=>{
+    toast(`Copied "${code}" for ${className} 📋`,'success');
+  }).catch(()=>{
+    toast(`Join code: ${code}`,'info');
+  });
+};
+
 window.startSession = async () => {
   const classId=document.getElementById('session-class-select').value;
   const radius=parseInt(document.getElementById('session-geo-radius').value)||100;
@@ -1495,6 +1622,7 @@ window.startSession = async () => {
 };
 
 async function loadAdminSessions() {
+  cleanOldSessions(); // Auto-remove sessions older than 24h
   const [activeSnap,pastSnap]=await Promise.all([
     getDocs(query(collection(db,'sessions'),where('active','==',true),where('adminId','==',currentUser.uid))),
     getDocs(query(collection(db,'sessions'),where('active','==',false),where('adminId','==',currentUser.uid)))
@@ -1531,6 +1659,26 @@ window.endSession = async sessionId => {
   await updateDoc(doc(db,'sessions',sessionId),{active:false,endTime:serverTimestamp()});
   toast('Session ended ✅','success'); loadAdminSessions(); loadAdminDashboard();
 };
+
+// Auto-delete past sessions older than 24 hours
+async function cleanOldSessions() {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hrs ago
+    const oldSnap = await getDocs(query(
+      collection(db,'sessions'),
+      where('active','==',false),
+      where('adminId','==',currentUser.uid)
+    ));
+    const toDelete = oldSnap.docs.filter(d => {
+      const endTime = d.data().endTime?.toDate?.();
+      return endTime && endTime < cutoff;
+    });
+    if(toDelete.length > 0) {
+      await Promise.all(toDelete.map(d => deleteDoc(doc(db,'sessions',d.id))));
+      console.log(`Auto-deleted ${toDelete.length} old session(s)`);
+    }
+  } catch(e) { console.log('Session cleanup error:', e); }
+}
 
 window.viewSessionAttendance = async sessionId => {
   const sessionSnap=await getDoc(doc(db,'sessions',sessionId));
@@ -1593,6 +1741,7 @@ window.deleteStudent = async (studentId, studentName) => {
     }
     toast(`"${studentName}" deleted ✅`,'success');
     loadAdminStudents();
+    loadAdminDashboard();
   } catch(e) { toast(e.message,'error'); }
 };
 
