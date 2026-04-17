@@ -578,7 +578,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <div class="modal-title">✏️ Edit Class</div>
     <input type="hidden" id="edit-class-id"/>
     <div class="form-group"><label>Class Name</label><input type="text" id="edit-class-name" placeholder="e.g. Data Structures"/></div>
-    <div class="form-group"><label>Subject Code</label><input type="text" id="edit-class-code" placeholder="e.g. CS301"/></div>
+    <div class="form-group"><label>Subject Code <span style="font-weight:500;color:var(--muted);font-size:12px">(Optional)</span></label><input type="text" id="edit-class-code" placeholder="e.g. CS301"/></div>
     <div class="form-group"><label>Schedule</label><input type="text" id="edit-class-schedule" placeholder="Mon, Wed, Fri"/></div>
     <div class="form-group"><label>Time</label><input type="text" id="edit-class-time" placeholder="10:00 AM - 11:00 AM"/></div>
     <div class="form-group"><label>Room</label><input type="text" id="edit-class-room" placeholder="Room B-204"/></div>
@@ -804,7 +804,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
       <div class="card-title"><div class="icon">➕</div>Create New Class</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group"><label>Class Name</label><input type="text" id="new-class-name" placeholder="e.g. Data Structures"/></div>
-        <div class="form-group"><label>Subject Code</label><input type="text" id="new-class-code" placeholder="e.g. CS301"/></div>
+        <div class="form-group"><label>Subject Code <span style="font-weight:500;color:var(--muted);font-size:12px">(Optional)</span></label><input type="text" id="new-class-code" placeholder="e.g. CS301"/></div>
         <div class="form-group"><label>Schedule</label><input type="text" id="new-class-schedule" placeholder="Mon, Wed, Fri"/></div>
         <div class="form-group"><label>Time</label><input type="text" id="new-class-time" placeholder="10:00 AM - 11:00 AM"/></div>
         <div class="form-group"><label>Room</label><input type="text" id="new-class-room" placeholder="Room B-204"/></div>
@@ -1486,7 +1486,7 @@ window.createClass = async () => {
   const time=document.getElementById('new-class-time').value.trim();
   const room=document.getElementById('new-class-room').value.trim();
   const total=parseInt(document.getElementById('new-class-total').value)||40;
-  if(!name||!code) return toast('Class name and code required','error');
+  if(!name) return toast('Class name is required','error');
   try {
     const enrollCode = genEnrollCode(); // unique 6-char join code for students
     await addDoc(collection(db,'classes'),{name,code,schedule,time,room,totalSessions:total,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp(),enrolledStudents:[],enrollCode});
@@ -1516,7 +1516,7 @@ window.saveEditClass = async () => {
   const classId = document.getElementById('edit-class-id').value;
   const name=document.getElementById('edit-class-name').value.trim();
   const code=document.getElementById('edit-class-code').value.trim();
-  if(!name||!code) return toast('Name and code required','error');
+  if(!name) return toast('Class name is required','error');
   try {
     await updateDoc(doc(db,'classes',classId),{
       name, code,
