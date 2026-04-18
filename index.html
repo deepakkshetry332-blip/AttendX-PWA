@@ -10,8 +10,8 @@
 <title>AttendX — Attendance Tracker</title>
 <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark-init")</script>
 <!-- QR Code generation & scanning libraries -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
@@ -560,9 +560,9 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 
 <!-- LOADING -->
 
-<div id="loading-screen">
-  <div class="loader-logo">AttendX</div>
-  <div class="loader-bar"><div class="loader-fill"></div></div>
+<div id="loading-screen" style="background:#f0f4ff;position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:20px">
+  <div class="loader-logo" style="font-size:2.8rem;font-weight:800;background:linear-gradient(135deg,#4361ee,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">AttendX</div>
+  <div class="loader-bar" style="width:220px;height:4px;background:#dde3f0;border-radius:4px;overflow:hidden"><div class="loader-fill" style="height:100%;background:linear-gradient(90deg,#4361ee,#7c3aed);animation:load 1.5s ease infinite"></div></div>
   <div style="font-size:14px;color:var(--muted);font-family:var(--font-mono)">Connecting to Firebase...</div>
 </div>
 
@@ -1243,7 +1243,18 @@ const downloadFile = (content, filename, type) => {
 };
 
 // ===== AUTH =====
+// Hard fallback: if Firebase auth never resolves, show auth screen after 10s
+const _loadingTimeout = setTimeout(() => {
+  const ls = document.getElementById('loading-screen');
+  if(ls && ls.style.display !== 'none') {
+    ls.style.display = 'none';
+    document.getElementById('auth-screen').classList.remove('hidden');
+    toast('Connection slow. Please check your internet.', 'error');
+  }
+}, 10000);
+
 onAuthStateChanged(auth, async user => {
+  clearTimeout(_loadingTimeout);
   document.getElementById('loading-screen').style.display = 'none';
   if(user) {
     currentUser = user;
