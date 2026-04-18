@@ -9,6 +9,9 @@
 <link rel="manifest" href="manifest.json"/>
 <title>AttendX — Attendance Tracker</title>
 <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark-init")</script>
+<!-- QR Code generation & scanning libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
@@ -373,6 +376,18 @@ background-clip: text;
 .holiday-name{font-weight:800;font-size:15px;color:var(–text)}
 .holiday-date{font-size:12px;color:var(–muted);font-family:var(–font-mono);margin-top:3px}
 .active-filter{border-color:var(–accent)!important;color:var(–accent)!important}
+/* QR CODE */
+.qr-box{background:var(–surface);border:2px solid var(–border);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px}
+.qr-code-wrap{display:flex;justify-content:center;margin:12px 0;padding:16px;background:#fff;border-radius:12px;display:inline-block}
+#qr-reader{width:100%;max-width:340px;margin:0 auto;border-radius:12px;overflow:hidden}
+#qr-reader video{border-radius:12px}
+.qr-or-divider{display:flex;align-items:center;gap:14px;margin:16px 0}
+.qr-or-divider span{color:var(–muted);font-size:13px;white-space:nowrap;font-weight:700}
+.qr-or-divider::before,.qr-or-divider::after{content:’’;flex:1;height:2px;background:var(–border)}
+.scan-btn{width:100%;padding:16px;border:2px solid var(–accent);border-radius:14px;background:transparent;color:var(–accent);font-family:var(–font-main);font-weight:700;font-size:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.scan-btn:hover{background:var(–accent);color:#fff}
+.scan-btn.scanning{background:var(–accent);color:#fff;animation:pulse-dot 1.5s infinite}
+
 /* NOTIFICATION BELL */
 .notif-bell{background:none;border:2px solid var(–border);color:var(–muted);padding:8px 12px;border-radius:10px;cursor:pointer;font-size:16px;transition:all .2s;position:relative}
 .notif-bell:hover{border-color:var(–accent);color:var(–accent)}
@@ -842,6 +857,12 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
             <button class="pin-btn" onclick="pinPress('back')"><span class="pin-btn-num">⌫</span></button>
           </div>
           <button class="btn btn-primary" style="width:270px;font-size:17px;padding:17px" onclick="submitPin()">✓ Confirm PIN</button>
+        <div class="qr-or-divider" style="width:270px"><span>OR</span></div>
+        <button class="scan-btn" id="qr-scan-btn" style="width:270px" onclick="toggleQrScanner()">📷 Scan QR Code</button>
+        <div id="qr-reader-wrap" style="width:270px;margin-top:12px;display:none">
+          <div id="qr-reader"></div>
+          <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-family:var(--font-mono)">Point camera at the QR code shown by your teacher</p>
+        </div>
         </div>
       </div>
     </div>
@@ -1101,6 +1122,22 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <div class="modal-title">👥 Manage Students</div>
     <div id="enroll-class-name" style="font-size:14px;color:var(--muted);margin-bottom:16px;font-weight:700"></div>
     <div id="enrollable-students"></div>
+  </div>
+</div>
+
+<!-- QR CODE MODAL (Teacher) -->
+
+<div id="qr-modal" class="modal-overlay hidden">
+  <div class="modal" style="text-align:center">
+    <button class="modal-close" onclick="closeQrModal()">&#x2715;</button>
+    <div class="modal-title">📱 Session QR Code</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">Students can scan this QR code to check in instantly. Display this on your screen or projector.</p>
+    <div id="qr-session-info" style="font-weight:800;font-size:17px;margin-bottom:16px;color:var(--text)"></div>
+    <div style="display:flex;justify-content:center;margin-bottom:16px">
+      <div id="qr-code-display" style="padding:16px;background:#fff;border-radius:16px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,0.1)"></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">QR code refreshes automatically. Valid only while session is active.</p>
+    <button class="btn btn-primary" onclick="closeQrModal()" style="margin-top:16px">Close</button>
   </div>
 </div>
 
@@ -2567,6 +2604,120 @@ async function notifySessionStart(session) {
       read: false, createdAt: serverTimestamp()
     })));
   } catch(e){}
+}
+
+// ===== QR CODE (Teacher - Show QR) =====
+let qrInstance = null;
+let qrScanner = null;
+
+window.showQrCode = (sessionId, className) => {
+  document.getElementById('qr-session-info').textContent = className;
+  const qrContainer = document.getElementById('qr-code-display');
+  qrContainer.innerHTML = '';
+  // QR encodes the sessionId so student app can identify the session
+  const qrData = JSON.stringify({sessionId, type:'attendx-checkin'});
+  qrInstance = new QRCode(qrContainer, {
+    text: qrData,
+    width: 220,
+    height: 220,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  document.getElementById('qr-modal').classList.remove('hidden');
+};
+
+window.closeQrModal = () => {
+  document.getElementById('qr-modal').classList.add('hidden');
+  if(qrInstance) { qrInstance.clear(); qrInstance = null; }
+};
+
+// ===== QR SCANNER (Student - Scan QR) =====
+let qrScannerActive = false;
+
+window.toggleQrScanner = () => {
+  if(qrScannerActive) {
+    stopQrScanner();
+  } else {
+    startQrScanner();
+  }
+};
+
+function startQrScanner() {
+  const wrap = document.getElementById('qr-reader-wrap');
+  const btn = document.getElementById('qr-scan-btn');
+  wrap.style.display = 'block';
+  btn.textContent = '⏹ Stop Scanner';
+  btn.classList.add('scanning');
+  qrScannerActive = true;
+  qrScanner = new Html5Qrcode('qr-reader');
+  qrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 220, height: 220 } },
+    async (decodedText) => {
+      stopQrScanner();
+      await handleQrCheckin(decodedText);
+    },
+    () => {} // ignore scan errors
+  ).catch(err => {
+    toast('Camera access denied. Please allow camera permissions.', 'error');
+    stopQrScanner();
+  });
+}
+
+function stopQrScanner() {
+  const wrap = document.getElementById('qr-reader-wrap');
+  const btn = document.getElementById('qr-scan-btn');
+  if(qrScanner) {
+    qrScanner.stop().then(()=>{ qrScanner.clear(); qrScanner=null; }).catch(()=>{});
+  }
+  wrap.style.display = 'none';
+  btn.textContent = 'ð· Scan QR Code';
+  btn.classList.remove('scanning');
+  qrScannerActive = false;
+}
+
+async function handleQrCheckin(decodedText) {
+  try {
+    const data = JSON.parse(decodedText);
+    if(!data.sessionId || data.type !== 'attendx-checkin') return toast('Invalid QR code ❌', 'error');
+    const sessionId = data.sessionId;
+    // Verify session is still active
+    const sessionSnap = await getDoc(doc(db,'sessions',sessionId));
+    if(!sessionSnap.exists() || !sessionSnap.data().active) return toast('Session is no longer active ❌', 'error');
+    const session = {id:sessionId,...sessionSnap.data()};
+    // Check geofence
+    if(!window._inGeofence) return toast('You are not within the class area ⛔', 'error');
+    // Check if already checked in
+    const attQ = query(collection(db,'attendance'),where('sessionId','==',sessionId),where('studentId','==',currentUser.uid));
+    const attSnap = await getDocs(attQ);
+    const existing = attSnap.docs[0];
+    const now = serverTimestamp();
+    if(!existing || !existing.data().checkIn) {
+      // Check in
+      await addDoc(collection(db,'attendance'),{
+        sessionId, classId:session.classId, className:session.className,
+        studentId:currentUser.uid, studentName:currentUserData.name,
+        studentEmail:currentUser.email, studentIdNum:currentUserData.studentId,
+        checkIn:true, checkInTime:now, checkOut:false, checkOutTime:null,
+        distance:window._studentDist||0, method:'qr'
+      });
+      toast('✅ Checked in via QR! ' + session.className, 'success');
+      document.getElementById('checkin-mode-chip').textContent = 'ð´ CHECK-OUT MODE';
+      document.getElementById('checkin-mode-chip').className = 'chip chip-red';
+      currentCheckinMode = 'out';
+    } else if(existing.data().checkIn && !existing.data().checkOut) {
+      // Check out
+      await updateDoc(doc(db,'attendance',existing.id),{checkOut:true,checkOutTime:now});
+      toast('✅ Checked out via QR! ' + session.className, 'success');
+      document.getElementById('checkin-pin-area').classList.add('hidden');
+    } else {
+      toast('You have already checked in and out for this session.', 'error');
+    }
+    loadStudentDashboard();
+  } catch(e) {
+    toast('Invalid QR code. Please try again.', 'error');
+  }
 }
 
 // PWA
