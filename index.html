@@ -2083,16 +2083,18 @@ window.downloadReport = async (fmt) => {
       const color = pct>=75?'#059669':pct>=50?'#d97706':'#dc2626';
       return `<tr><td>${s.name}</td><td>${s.id}</td><td>${s.email}</td><td>${s.sessions}</td><td>${s.present}</td><td style="color:${color};font-weight:800">${pct}%</td></tr>`;
     }).join('');
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance Report</title>
-    <style>body{font-family:sans-serif;padding:32px;color:#1e293b}h1{color:#4361ee;margin-bottom:4px}p{color:#64748b;margin-bottom:24px;font-size:13px}table{width:100%;border-collapse:collapse}th{background:#4361ee;color:#fff;padding:10px 14px;text-align:left;font-size:12px}td{padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:13px}tr:nth-child(even){background:#f8faff}</style>
+    const printTag = '<scr' + 'ipt>window.onload=()=>{window.print();}</' + 'script>';
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance Report</title>'
+      + '<style>body{font-family:sans-serif;padding:32px;color:#1e293b}h1{color:#4361ee;margin-bottom:4px}p{color:#64748b;margin-bottom:24px;font-size:13px}table{width:100%;border-collapse:collapse}th{background:#4361ee;color:#fff;padding:10px 14px;text-align:left;font-size:12px}td{padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:13px}tr:nth-child(even){background:#f8faff}}</style>'
 
 ```
-</head><body>
-<h1>📊 Attendance Report</h1>
-<p>Class: ${className} &nbsp;•&nbsp; Generated: ${new Date().toLocaleString()}</p>
-<table><thead><tr><th>Student</th><th>Student ID</th><th>Email</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead>
-<tbody>${rows}</tbody></table>
-<script>window.onload=()=>{window.print();}<\/script></body></html>`;
+  + '</head><body>'
+  + '<h1>\u{1F4CA} Attendance Report</h1>'
+  + '<p>Class: ' + className + ' &nbsp;\u2022&nbsp; Generated: ' + new Date().toLocaleString() + '</p>'
+  + '<table><thead><tr><th>Student</th><th>Student ID</th><th>Email</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead>'
+  + '<tbody>' + rows + '</tbody></table>'
+  + printTag
+  + '</body></html>';
 const w = window.open('','_blank');
 if(w) { w.document.write(html); w.document.close(); }
 else toast('Allow popups to download PDF', 'error');
