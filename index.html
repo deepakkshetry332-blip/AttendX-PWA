@@ -10,7 +10,7 @@
 <title>AttendX — Attendance Tracker</title>
 <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark-init")</script>
 <!-- QR Code generation & scanning libraries -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -918,7 +918,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
       <div class="stat-card"><div class="stat-num" id="a-total-students">–</div><div class="stat-label">Students</div></div>
       <div class="stat-card"><div class="stat-num" id="a-total-classes">–</div><div class="stat-label">Classes</div></div>
       <div class="stat-card"><div class="stat-num" id="a-active-sessions">–</div><div class="stat-label">Active Now</div></div>
-      <div class="stat-card"><div class="stat-num" id="a-today-att">–%</div><div class="stat-label">Today's Att.</div></div>
+      <div class="stat-card"><div class="stat-num" id="a-today-att">–%</div><div class="stat-label">Today Check-ins</div></div>
     </div>
     <div class="card">
       <div class="card-title"><div class="icon">⚡</div>Active Sessions</div>
@@ -1670,7 +1670,26 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-students').textContent = studentsSnap.size;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
-  document.getElementById('a-today-att').textContent = '–%';
+  // Calculate today's attendance
+  try {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const allAttSnap = await getDocs(query(collection(db,'attendance'),where('adminId','==',currentUser.uid)));
+    if(allAttSnap.empty) {
+      // Try without adminId filter (attendance records may not have adminId)
+      const allAtt2 = await getDocs(collection(db,'attendance'));
+      const todayAtt = allAtt2.docs.filter(d => {
+        const t = d.data().checkInTime?.toDate?.();
+        return t && t >= todayStart;
+      });
+      document.getElementById('a-today-att').textContent = todayAtt.length;
+    } else {
+      const todayAtt = allAttSnap.docs.filter(d => {
+        const t = d.data().checkInTime?.toDate?.();
+        return t && t >= todayStart;
+      });
+      document.getElementById('a-today-att').textContent = todayAtt.length;
+    }
+  } catch(e) { document.getElementById('a-today-att').textContent = '0'; }
   const activeSessions = sessionsSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl = document.getElementById('admin-active-sessions');
   aEl.innerHTML = activeSessions.length ? activeSessions.map(s=>`
@@ -2028,175 +2047,228 @@ async function loadReport(classId) {
   if(!records.length){el.innerHTML='<div class="empty-state"><span class="icon">📊</span>No data</div>';return;}
   const byStudent={};
   records.forEach(r=>{if(!byStudent[r.studentId])byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,id:r.studentIdNum,sessions:0,present:0};byStudent[r.studentId].sessions++;if(r.checkIn)byStudent[r.studentId].present++;});
-  el.innerHTML=`<table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
+  el.innerHTML=`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
   ${Object.values(byStudent).map(s=>{const pct=Math.round(s.present/s.sessions*100);return`<tr>
     <td style="font-weight:700">${s.name||'–'}</td><td style="font-family:var(--font-mono)">${s.id||'–'}</td>
     <td>${s.sessions}</td><td>${s.present}</td>
     <td><span class="chip ${pct>=75?'chip-green':pct>=50?'chip-yellow':'chip-red'}">${pct}%</span></td>
-  </tr>`;}).join('')}</tbody></table>`;
+  </tr>`;}).join('')}</tbody></table></div>`;
 }
 
-// downloadReport: see new implementation in features section
+// downloadReport: download attendance report
+window.downloadReport = async (fmt) => {
+  const records = window._reportRecords || [];
+  if(!records.length) return toast('No report data to download. Select a class first.', 'error');
+  const classSelect = document.getElementById('report-class-select');
+  const className = classSelect.options[classSelect.selectedIndex]?.text || 'All_Classes';
+  if(fmt === 'csv') {
+    const rows = [
+      ['Student', 'Student ID', 'Email', 'Sessions', 'Present', 'Attendance %'],
+    ];
+    const byStudent = {};
+    records.forEach(r => {
+      if(!byStudent[r.studentId]) byStudent[r.studentId] = {name:r.studentName||'', id:r.studentIdNum||'', email:r.studentEmail||'', sessions:0, present:0};
+      byStudent[r.studentId].sessions++;
+      if(r.checkIn) byStudent[r.studentId].present++;
+    });
+    Object.values(byStudent).forEach(s => {
+      const pct = s.sessions ? Math.round(s.present/s.sessions*100) : 0;
+      rows.push([s.name, s.id, s.email, s.sessions, s.present, pct+'%']);
+    });
+    downloadFile(rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n'), `${className}_report.csv`, 'text/csv');
+    toast('CSV downloaded! ✅', 'success');
+  } else if(fmt === 'json') {
+    downloadFile(JSON.stringify(records, null, 2), `${className}_report.json`, 'application/json');
+    toast('JSON downloaded! ✅', 'success');
+  } else if(fmt === 'pdf') {
+    // Simple HTML-based PDF print
+    const byStudent = {};
+    records.forEach(r => {
+      if(!byStudent[r.studentId]) byStudent[r.studentId] = {name:r.studentName||'–', id:r.studentIdNum||'–', email:r.studentEmail||'–', sessions:0, present:0};
+      byStudent[r.studentId].sessions++;
+      if(r.checkIn) byStudent[r.studentId].present++;
+    });
+    const rows = Object.values(byStudent).map(s => {
+      const pct = s.sessions ? Math.round(s.present/s.sessions*100) : 0;
+      const color = pct>=75?'#059669':pct>=50?'#d97706':'#dc2626';
+      return `<tr><td>${s.name}</td><td>${s.id}</td><td>${s.email}</td><td>${s.sessions}</td><td>${s.present}</td><td style="color:${color};font-weight:800">${pct}%</td></tr>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance Report</title>
+    <style>body{font-family:sans-serif;padding:32px;color:#1e293b}h1{color:#4361ee;margin-bottom:4px}p{color:#64748b;margin-bottom:24px;font-size:13px}table{width:100%;border-collapse:collapse}th{background:#4361ee;color:#fff;padding:10px 14px;text-align:left;font-size:12px}td{padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:13px}tr:nth-child(even){background:#f8faff}</style>
+
+```
+</head><body>
+<h1>📊 Attendance Report</h1>
+<p>Class: ${className} &nbsp;•&nbsp; Generated: ${new Date().toLocaleString()}</p>
+<table><thead><tr><th>Student</th><th>Student ID</th><th>Email</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<script>window.onload=()=>{window.print();}<\/script></body></html>`;
+const w = window.open('','_blank');
+if(w) { w.document.write(html); w.document.close(); }
+else toast('Allow popups to download PDF', 'error');
+```
+
+}
+};
 
 // ===== SETTINGS =====
 async function loadAdminProfile() {
-  const el=document.getElementById('admin-profile-info');
-  if(!currentUserData) return;
-  el.innerHTML=`<div><strong>Name:</strong> ${currentUserData.name}</div><div><strong>Email:</strong> ${currentUser.email}</div><div><strong>Department:</strong> ${currentUserData.department||'–'}</div><div><strong>Current PIN:</strong> <span style="color:var(--accent);font-family:var(--font-mono)">${currentUserData.adminPin||'1234'}</span></div>`;
-  const settingsSnap=await getDoc(doc(db,'settings','global'));
-  if(settingsSnap.exists()){
-    const s=settingsSnap.data();
-    document.getElementById('college-name').value=s.collegeName||'';
-    document.getElementById('access-code').value=s.adminCode||'';
-    const codeEl=document.getElementById('teacher-code-value');
-    if(codeEl) codeEl.textContent = s.adminCode || '(not set)';
-  }
+const el=document.getElementById(‘admin-profile-info’);
+if(!currentUserData) return;
+el.innerHTML=`<div><strong>Name:</strong> ${currentUserData.name}</div><div><strong>Email:</strong> ${currentUser.email}</div><div><strong>Department:</strong> ${currentUserData.department||'–'}</div><div><strong>Current PIN:</strong> <span style="color:var(--accent);font-family:var(--font-mono)">${currentUserData.adminPin||'1234'}</span></div>`;
+const settingsSnap=await getDoc(doc(db,‘settings’,‘global’));
+if(settingsSnap.exists()){
+const s=settingsSnap.data();
+document.getElementById(‘college-name’).value=s.collegeName||’’;
+document.getElementById(‘access-code’).value=s.adminCode||’’;
+const codeEl=document.getElementById(‘teacher-code-value’);
+if(codeEl) codeEl.textContent = s.adminCode || ‘(not set)’;
+}
 }
 
 window.changeAdminPin = async () => {
-  const current=document.getElementById('current-pin').value;
-  const newPin=document.getElementById('new-pin').value;
-  const confirm2=document.getElementById('confirm-pin').value;
-  if(!current||!newPin||!confirm2) return toast('Fill all fields','error');
-  if(current!==(currentUserData.adminPin||'1234')) return toast('Current PIN incorrect','error');
-  if(newPin!==confirm2) return toast('New PINs do not match','error');
-  if(!/^\d{4,8}$/.test(newPin)) return toast('PIN must be 4-8 digits','error');
-  await updateDoc(doc(db,'users',currentUser.uid),{adminPin:newPin});
-  currentUserData.adminPin=newPin;
-  toast('PIN updated! ✅','success');
-  ['current-pin','new-pin','confirm-pin'].forEach(id=>document.getElementById(id).value='');
-  loadAdminProfile();
+const current=document.getElementById(‘current-pin’).value;
+const newPin=document.getElementById(‘new-pin’).value;
+const confirm2=document.getElementById(‘confirm-pin’).value;
+if(!current||!newPin||!confirm2) return toast(‘Fill all fields’,‘error’);
+if(current!==(currentUserData.adminPin||‘1234’)) return toast(‘Current PIN incorrect’,‘error’);
+if(newPin!==confirm2) return toast(‘New PINs do not match’,‘error’);
+if(!/^\d{4,8}$/.test(newPin)) return toast(‘PIN must be 4-8 digits’,‘error’);
+await updateDoc(doc(db,‘users’,currentUser.uid),{adminPin:newPin});
+currentUserData.adminPin=newPin;
+toast(‘PIN updated! ✅’,‘success’);
+[‘current-pin’,‘new-pin’,‘confirm-pin’].forEach(id=>document.getElementById(id).value=’’);
+loadAdminProfile();
 };
 
 window.showResetPinModal = () => {
-  document.getElementById('reset-pin-password').value = '';
-  document.getElementById('reset-pin-modal').classList.remove('hidden');
+document.getElementById(‘reset-pin-password’).value = ‘’;
+document.getElementById(‘reset-pin-modal’).classList.remove(‘hidden’);
 };
 
 window.resetPinWithPassword = async () => {
-  const password = document.getElementById('reset-pin-password').value;
-  if(!password) return toast('Please enter your login password','error');
-  const btn = document.querySelector('#reset-pin-modal .btn-primary');
-  btn.textContent = 'Verifying...'; btn.disabled = true;
-  try {
-    const credential = EmailAuthProvider.credential(currentUser.email, password);
-    await reauthenticateWithCredential(currentUser, credential);
-    await updateDoc(doc(db,'users',currentUser.uid),{adminPin:'1234'});
-    currentUserData.adminPin = '1234';
-    toast('PIN reset to 1234 ✅ Please change it right away!','success');
-    closeModal('reset-pin-modal');
-    loadAdminProfile();
-  } catch(e) {
-    if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') toast('Incorrect password ❌','error');
-    else if(e.code==='auth/too-many-requests') toast('Too many attempts. Try again later.','error');
-    else toast(e.message,'error');
-  } finally { btn.textContent = '🔑 Reset PIN to 1234'; btn.disabled = false; }
+const password = document.getElementById(‘reset-pin-password’).value;
+if(!password) return toast(‘Please enter your login password’,‘error’);
+const btn = document.querySelector(’#reset-pin-modal .btn-primary’);
+btn.textContent = ‘Verifying…’; btn.disabled = true;
+try {
+const credential = EmailAuthProvider.credential(currentUser.email, password);
+await reauthenticateWithCredential(currentUser, credential);
+await updateDoc(doc(db,‘users’,currentUser.uid),{adminPin:‘1234’});
+currentUserData.adminPin = ‘1234’;
+toast(‘PIN reset to 1234 ✅ Please change it right away!’,‘success’);
+closeModal(‘reset-pin-modal’);
+loadAdminProfile();
+} catch(e) {
+if(e.code===‘auth/wrong-password’||e.code===‘auth/invalid-credential’) toast(‘Incorrect password ❌’,‘error’);
+else if(e.code===‘auth/too-many-requests’) toast(‘Too many attempts. Try again later.’,‘error’);
+else toast(e.message,‘error’);
+} finally { btn.textContent = ‘🔑 Reset PIN to 1234’; btn.disabled = false; }
 };
 
 window.saveSettings = async () => {
-  const collegeName=document.getElementById('college-name').value.trim();
-  const adminCode=document.getElementById('access-code').value.trim();
-  await setDoc(doc(db,'settings','global'),{collegeName,adminCode},{merge:true});
-  toast('Settings saved! ✅','success');
-  const codeEl=document.getElementById('teacher-code-value');
-  if(codeEl) codeEl.textContent = adminCode || '(not set)';
+const collegeName=document.getElementById(‘college-name’).value.trim();
+const adminCode=document.getElementById(‘access-code’).value.trim();
+await setDoc(doc(db,‘settings’,‘global’),{collegeName,adminCode},{merge:true});
+toast(‘Settings saved! ✅’,‘success’);
+const codeEl=document.getElementById(‘teacher-code-value’);
+if(codeEl) codeEl.textContent = adminCode || ‘(not set)’;
 };
 
 window.copyTeacherCode = () => {
-  const code = document.getElementById('teacher-code-value').textContent;
-  if(!code || code==='(not set)' || code==='––') return toast('No code set yet. Save one in College Settings above.','error');
-  navigator.clipboard.writeText(code).then(()=>toast('Teacher code copied! 📋','success')).catch(()=>{
-    const ta=document.createElement('textarea');
-    ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    toast('Teacher code copied! 📋','success');
-  });
+const code = document.getElementById(‘teacher-code-value’).textContent;
+if(!code || code===’(not set)’ || code===’––’) return toast(‘No code set yet. Save one in College Settings above.’,‘error’);
+navigator.clipboard.writeText(code).then(()=>toast(‘Teacher code copied! 📋’,‘success’)).catch(()=>{
+const ta=document.createElement(‘textarea’);
+ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand(‘copy’); document.body.removeChild(ta);
+toast(‘Teacher code copied! 📋’,‘success’);
+});
 };
-
 
 // ===== DARK MODE =====
 window.toggleTheme = () => {
-  const isDark = document.body.classList.toggle('dark');
-  localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  const btn = document.getElementById('theme-btn');
-  if(btn) btn.textContent = isDark ? '☀️' : '🌙';
-  document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-  // Re-apply stat colors after theme switch
-  document.querySelectorAll('.stat-num').forEach(el => {
-    el.style.color = isDark ? '#818cf8' : 'var(--accent)';
-  });
-  // Reload dashboard data so numbers reappear
-  if(currentUser && currentUserData) {
-    if(currentUserData.role === 'admin') loadAdminDashboard();
-    else loadStudentDashboard();
-  }
+const isDark = document.body.classList.toggle(‘dark’);
+localStorage.setItem(‘theme’, isDark ? ‘dark’ : ‘light’);
+const btn = document.getElementById(‘theme-btn’);
+if(btn) btn.textContent = isDark ? ‘☀️’ : ‘🌙’;
+document.documentElement.style.colorScheme = isDark ? ‘dark’ : ‘light’;
+// Re-apply stat colors after theme switch
+document.querySelectorAll(’.stat-num’).forEach(el => {
+el.style.color = isDark ? ‘#818cf8’ : ‘var(–accent)’;
+});
+// Reload dashboard data so numbers reappear
+if(currentUser && currentUserData) {
+if(currentUserData.role === ‘admin’) loadAdminDashboard();
+else loadStudentDashboard();
+}
 };
 (()=>{
-  // Apply theme immediately to prevent flash
-  if(localStorage.getItem('theme')==='dark'){
-    document.documentElement.style.colorScheme='dark';
-    document.body.classList.add('dark');
-    const applyBtn = () => {
-      const b=document.getElementById('theme-btn');
-      if(b) b.textContent='☀️';
-    };
-    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyBtn);
-    else applyBtn();
-  }
+// Apply theme immediately to prevent flash
+if(localStorage.getItem(‘theme’)===‘dark’){
+document.documentElement.style.colorScheme=‘dark’;
+document.body.classList.add(‘dark’);
+const applyBtn = () => {
+const b=document.getElementById(‘theme-btn’);
+if(b) b.textContent=‘☀️’;
+};
+if(document.readyState===‘loading’) document.addEventListener(‘DOMContentLoaded’, applyBtn);
+else applyBtn();
+}
 })();
 
 // ===== SHOW/HIDE PASSWORD =====
 window.togglePw = (id, btn) => {
-  const inp = document.getElementById(id);
-  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
-  else { inp.type='password'; btn.textContent='👁️'; }
+const inp = document.getElementById(id);
+if(inp.type===‘password’){ inp.type=‘text’; btn.textContent=‘🙈’; }
+else { inp.type=‘password’; btn.textContent=‘👁️’; }
 };
 
 // ===== REMEMBER ME =====
 (()=>{
-  const saved = localStorage.getItem('rememberedEmail');
-  const role = localStorage.getItem('rememberedRole');
-  if(saved && role==='student'){
-    document.addEventListener('DOMContentLoaded',()=>{
-      const el=document.getElementById('student-email');
-      const cb=document.getElementById('student-remember');
-      if(el) el.value=saved;
-      if(cb) cb.checked=true;
-    });
-  }
-  if(saved && role==='admin'){
-    document.addEventListener('DOMContentLoaded',()=>{
-      const el=document.getElementById('admin-email');
-      const cb=document.getElementById('admin-remember');
-      if(el) el.value=saved;
-      if(cb) cb.checked=true;
-    });
-  }
+const saved = localStorage.getItem(‘rememberedEmail’);
+const role = localStorage.getItem(‘rememberedRole’);
+if(saved && role===‘student’){
+document.addEventListener(‘DOMContentLoaded’,()=>{
+const el=document.getElementById(‘student-email’);
+const cb=document.getElementById(‘student-remember’);
+if(el) el.value=saved;
+if(cb) cb.checked=true;
+});
+}
+if(saved && role===‘admin’){
+document.addEventListener(‘DOMContentLoaded’,()=>{
+const el=document.getElementById(‘admin-email’);
+const cb=document.getElementById(‘admin-remember’);
+if(el) el.value=saved;
+if(cb) cb.checked=true;
+});
+}
 })();
 
 // ===== FORGOT PASSWORD =====
 window.showForgotPassword = () => {
-  const isAdmin = !document.getElementById('admin-auth').classList.contains('hidden');
-  const emailVal = isAdmin ? document.getElementById('admin-email').value : document.getElementById('student-email').value;
-  document.getElementById('forgot-email').value = emailVal || '';
-  document.getElementById('forgot-password-modal').classList.remove('hidden');
+const isAdmin = !document.getElementById(‘admin-auth’).classList.contains(‘hidden’);
+const emailVal = isAdmin ? document.getElementById(‘admin-email’).value : document.getElementById(‘student-email’).value;
+document.getElementById(‘forgot-email’).value = emailVal || ‘’;
+document.getElementById(‘forgot-password-modal’).classList.remove(‘hidden’);
 };
 
 window.sendPasswordReset = async () => {
-  const email = document.getElementById('forgot-email').value.trim();
-  if(!email) return toast('Please enter your email address','error');
-  const btn = document.querySelector('#forgot-password-modal .btn-primary');
-  btn.textContent='Sending...'; btn.disabled=true;
-  try {
-    await sendPasswordResetEmail(auth, email);
-    toast('Reset link sent! Check your inbox & spam folder 📧','success');
-    closeModal('forgot-password-modal');
-    document.getElementById('forgot-email').value='';
-  } catch(e) {
-    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential') toast('No account found with that email','error');
-    else if(e.code==='auth/invalid-email') toast('Please enter a valid email address','error');
-    else if(e.code==='auth/too-many-requests') toast('Too many attempts. Wait a few minutes','error');
-    else toast(e.message,'error');
-  } finally { btn.textContent='Send Reset Link'; btn.disabled=false; }
+const email = document.getElementById(‘forgot-email’).value.trim();
+if(!email) return toast(‘Please enter your email address’,‘error’);
+const btn = document.querySelector(’#forgot-password-modal .btn-primary’);
+btn.textContent=‘Sending…’; btn.disabled=true;
+try {
+await sendPasswordResetEmail(auth, email);
+toast(‘Reset link sent! Check your inbox & spam folder 📧’,‘success’);
+closeModal(‘forgot-password-modal’);
+document.getElementById(‘forgot-email’).value=’’;
+} catch(e) {
+if(e.code===‘auth/user-not-found’||e.code===‘auth/invalid-credential’) toast(‘No account found with that email’,‘error’);
+else if(e.code===‘auth/invalid-email’) toast(‘Please enter a valid email address’,‘error’);
+else if(e.code===‘auth/too-many-requests’) toast(‘Too many attempts. Wait a few minutes’,‘error’);
+else toast(e.message,‘error’);
+} finally { btn.textContent=‘Send Reset Link’; btn.disabled=false; }
 };
 
 // ===== AUTO LOGOUT (INACTIVITY) =====
@@ -2205,444 +2277,423 @@ const INACTIVITY_LIMIT = 10 * 60; // 10 minutes
 const WARNING_AT = 9 * 60; // warn at 9 min
 
 window.resetInactivity = () => {
-  inactivitySeconds=0;
-  document.getElementById('inactivity-bar').classList.remove('show');
-  clearTimeout(inactivityTimer);
-  startInactivityTimer();
+inactivitySeconds=0;
+document.getElementById(‘inactivity-bar’).classList.remove(‘show’);
+clearTimeout(inactivityTimer);
+startInactivityTimer();
 };
 
 function startInactivityTimer(){
-  if(!currentUser) return;
-  inactivitySeconds=0;
-  clearInterval(countdownTimer);
-  clearTimeout(inactivityTimer);
-  countdownTimer = setInterval(()=>{
-    inactivitySeconds++;
-    if(inactivitySeconds >= WARNING_AT){
-      const bar=document.getElementById('inactivity-bar');
-      bar.classList.add('show');
-      const remaining = INACTIVITY_LIMIT - inactivitySeconds;
-      const el=document.getElementById('inactivity-countdown');
-      if(el) el.textContent=remaining;
-      if(remaining<=0){
-        clearInterval(countdownTimer);
-        signOut(auth);
-        toast('Logged out due to inactivity','error');
-      }
-    }
-  },1000);
+if(!currentUser) return;
+inactivitySeconds=0;
+clearInterval(countdownTimer);
+clearTimeout(inactivityTimer);
+countdownTimer = setInterval(()=>{
+inactivitySeconds++;
+if(inactivitySeconds >= WARNING_AT){
+const bar=document.getElementById(‘inactivity-bar’);
+bar.classList.add(‘show’);
+const remaining = INACTIVITY_LIMIT - inactivitySeconds;
+const el=document.getElementById(‘inactivity-countdown’);
+if(el) el.textContent=remaining;
+if(remaining<=0){
+clearInterval(countdownTimer);
+signOut(auth);
+toast(‘Logged out due to inactivity’,‘error’);
+}
+}
+},1000);
 }
 
-['click','keydown','touchstart','scroll'].forEach(ev=>
-  document.addEventListener(ev, ()=>{ if(currentUser) resetInactivity(); }, {passive:true})
+[‘click’,‘keydown’,‘touchstart’,‘scroll’].forEach(ev=>
+document.addEventListener(ev, ()=>{ if(currentUser) resetInactivity(); }, {passive:true})
 );
 
 // ===== ATTENDANCE WARNING =====
 function showAttWarning(pct){
-  const el=document.getElementById('att-warning-banner');
-  if(!el) return;
-  if(pct < 75 && pct > 0){
-    const isDanger = pct < 60;
-    el.innerHTML=`<div class="att-warning ${isDanger?'danger':''}">
-      <div class="att-warning-icon">${isDanger?'🚨':'⚠️'}</div>
-      <div class="att-warning-text">${isDanger?'Critical':'Low'} Attendance: ${pct}%
-        <span>${isDanger?'Immediate action required!':'You need ≥75% to pass. Attend more classes.'}</span>
-      </div>
-    </div>`;
-  } else { el.innerHTML=''; }
+const el=document.getElementById(‘att-warning-banner’);
+if(!el) return;
+if(pct < 75 && pct > 0){
+const isDanger = pct < 60;
+el.innerHTML=`<div class="att-warning ${isDanger?'danger':''}"> <div class="att-warning-icon">${isDanger?'🚨':'⚠️'}</div> <div class="att-warning-text">${isDanger?'Critical':'Low'} Attendance: ${pct}% <span>${isDanger?'Immediate action required!':'You need ≥75% to pass. Attend more classes.'}</span> </div> </div>`;
+} else { el.innerHTML=’’; }
 }
 
 // ===== CALENDAR =====
 let calYear, calMonth, calAttDates={};
 
 window.calNav = (dir) => {
-  calMonth += dir;
-  if(calMonth>11){calMonth=0;calYear++;}
-  if(calMonth<0){calMonth=11;calYear--;}
-  renderCalendar();
+calMonth += dir;
+if(calMonth>11){calMonth=0;calYear++;}
+if(calMonth<0){calMonth=11;calYear–;}
+renderCalendar();
 };
 
 async function loadCalendar(){
-  const now=new Date();
-  calYear=now.getFullYear(); calMonth=now.getMonth();
-  const snap=await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
-  calAttDates={};
-  snap.docs.forEach(d=>{
-    const r=d.data();
-    if(r.checkInTime){
-      const dt=r.checkInTime.toDate();
-      const key=dt.getFullYear()+'-'+(dt.getMonth()+1)+'-'+dt.getDate();
-      calAttDates[key]=r.checkIn?'present':'absent';
-    }
-  });
-  renderCalendar();
+const now=new Date();
+calYear=now.getFullYear(); calMonth=now.getMonth();
+const snap=await getDocs(query(collection(db,‘attendance’),where(‘studentId’,’==’,currentUser.uid)));
+calAttDates={};
+snap.docs.forEach(d=>{
+const r=d.data();
+if(r.checkInTime){
+const dt=r.checkInTime.toDate();
+const key=dt.getFullYear()+’-’+(dt.getMonth()+1)+’-’+dt.getDate();
+calAttDates[key]=r.checkIn?‘present’:‘absent’;
+}
+});
+renderCalendar();
 }
 
 function renderCalendar(){
-  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
-  const grid=document.getElementById('cal-grid');
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
-  const today=new Date();
-  let html='';
-  for(let i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
-  let present=0,absent=0;
-  for(let d=1;d<=daysInMonth;d++){
-    const key=calYear+'-'+(calMonth+1)+'-'+d;
-    const status=calAttDates[key]||'';
-    const isToday=today.getDate()===d&&today.getMonth()===calMonth&&today.getFullYear()===calYear;
-    if(status==='present') present++;
-    if(status==='absent') absent++;
-    html+=`<div class="cal-day ${status} ${isToday?'today':''}">${d}</div>`;
-  }
-  grid.innerHTML=html;
-  const summaryEl=document.getElementById('cal-summary');
-  const pct=present+absent>0?Math.round(present/(present+absent)*100):0;
-  summaryEl.innerHTML=`<div>✅ <strong>Present:</strong> ${present} days</div>
-    <div>❌ <strong>Absent:</strong> ${absent} days</div>
-    <div>📊 <strong>This Month:</strong> ${pct}%</div>`;
+const months=[‘January’,‘February’,‘March’,‘April’,‘May’,‘June’,‘July’,‘August’,‘September’,‘October’,‘November’,‘December’];
+document.getElementById(‘cal-month-label’).textContent=months[calMonth]+’ ‘+calYear;
+const grid=document.getElementById(‘cal-grid’);
+const firstDay=new Date(calYear,calMonth,1).getDay();
+const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+const today=new Date();
+let html=’’;
+for(let i=0;i<firstDay;i++) html+=’<div class="cal-day empty"></div>’;
+let present=0,absent=0;
+for(let d=1;d<=daysInMonth;d++){
+const key=calYear+’-’+(calMonth+1)+’-’+d;
+const status=calAttDates[key]||’’;
+const isToday=today.getDate()===d&&today.getMonth()===calMonth&&today.getFullYear()===calYear;
+if(status===‘present’) present++;
+if(status===‘absent’) absent++;
+html+=`<div class="cal-day ${status} ${isToday?'today':''}">${d}</div>`;
+}
+grid.innerHTML=html;
+const summaryEl=document.getElementById(‘cal-summary’);
+const pct=present+absent>0?Math.round(present/(present+absent)*100):0;
+summaryEl.innerHTML=`<div>✅ <strong>Present:</strong> ${present} days</div> <div>❌ <strong>Absent:</strong> ${absent} days</div> <div>📊 <strong>This Month:</strong> ${pct}%</div>`;
 }
 
 // ===== ANNOUNCEMENTS (TEACHER SEND) =====
 async function loadAnnouncementClasses(){
-  const q=query(collection(db,'classes'),where('adminId','==',currentUser.uid));
-  const snap=await getDocs(q);
-  const sel=document.getElementById('ann-class');
-  if(!sel) return;
-  sel.innerHTML='<option value="all">📢 All Students</option>'+snap.docs.map(d=>`<option value="${d.id}">${d.data().name}</option>`).join('');
+const q=query(collection(db,‘classes’),where(‘adminId’,’==’,currentUser.uid));
+const snap=await getDocs(q);
+const sel=document.getElementById(‘ann-class’);
+if(!sel) return;
+sel.innerHTML=’<option value="all">📢 All Students</option>’+snap.docs.map(d=>`<option value="${d.id}">${d.data().name}</option>`).join(’’);
 }
 
 async function loadAnnouncementsList(){
-  const q=query(collection(db,'announcements'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc'));
-  const snap=await getDocs(q);
-  const el=document.getElementById('announcements-list');
-  if(!el) return;
-  // Auto-delete announcements older than 24 hours
-  const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-  const toDelete = snap.docs.filter(d => {
-    const t = d.data().createdAt?.toDate?.();
-    return t && t.getTime() < oneDayAgo;
-  });
-  if(toDelete.length) {
-    await Promise.all(toDelete.map(d => deleteDoc(doc(db,'announcements',d.id))));
-    toast(`${toDelete.length} expired announcement${toDelete.length>1?'s':''} auto-removed 🗑️`,'info');
-  }
-  const remaining = snap.docs.filter(d => !toDelete.find(x=>x.id===d.id));
-  if(!remaining.length){el.innerHTML='<div class="empty-state"><span class="icon">📢</span>No announcements yet</div>';return;}
-  el.innerHTML=remaining.map(d=>{
-    const a=d.data();
-    const created = a.createdAt?.toDate?.();
-    const hoursAgo = created ? Math.round((Date.now()-created.getTime())/3600000) : 0;
-    const timeLabel = hoursAgo < 1 ? 'Just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : created.toLocaleString();
-    const expiresIn = created ? Math.max(0, Math.round(24 - (Date.now()-created.getTime())/3600000)) : '?';
-    return`<div class="ann-card">
-      <div style="display:flex;justify-content:space-between;align-items:start">
-        <div class="ann-card-title">📢 ${a.title||''}</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">⏱ ${expiresIn}h left</span>
-          <button class="btn btn-danger btn-sm" style="padding:6px 10px;font-size:12px" onclick="deleteAnnouncement('${d.id}')">🗑️</button>
-        </div>
-      </div>
-      <div class="ann-card-body">${a.body||''}</div>
-      <div class="ann-card-meta">${a.className||'All Students'} · ${timeLabel}</div>
-    </div>`;
-  }).join('');
+const q=query(collection(db,‘announcements’),where(‘adminId’,’==’,currentUser.uid),orderBy(‘createdAt’,‘desc’));
+const snap=await getDocs(q);
+const el=document.getElementById(‘announcements-list’);
+if(!el) return;
+// Auto-delete announcements older than 24 hours
+const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+const toDelete = snap.docs.filter(d => {
+const t = d.data().createdAt?.toDate?.();
+return t && t.getTime() < oneDayAgo;
+});
+if(toDelete.length) {
+await Promise.all(toDelete.map(d => deleteDoc(doc(db,‘announcements’,d.id))));
+toast(`${toDelete.length} expired announcement${toDelete.length>1?'s':''} auto-removed 🗑️`,‘info’);
+}
+const remaining = snap.docs.filter(d => !toDelete.find(x=>x.id===d.id));
+if(!remaining.length){el.innerHTML=’<div class="empty-state"><span class="icon">📢</span>No announcements yet</div>’;return;}
+el.innerHTML=remaining.map(d=>{
+const a=d.data();
+const created = a.createdAt?.toDate?.();
+const hoursAgo = created ? Math.round((Date.now()-created.getTime())/3600000) : 0;
+const timeLabel = hoursAgo < 1 ? ‘Just now’ : hoursAgo < 24 ? `${hoursAgo}h ago` : created.toLocaleString();
+const expiresIn = created ? Math.max(0, Math.round(24 - (Date.now()-created.getTime())/3600000)) : ‘?’;
+return`<div class="ann-card"> <div style="display:flex;justify-content:space-between;align-items:start"> <div class="ann-card-title">📢 ${a.title||''}</div> <div style="display:flex;gap:6px;align-items:center"> <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">⏱ ${expiresIn}h left</span> <button class="btn btn-danger btn-sm" style="padding:6px 10px;font-size:12px" onclick="deleteAnnouncement('${d.id}')">🗑️</button> </div> </div> <div class="ann-card-body">${a.body||''}</div> <div class="ann-card-meta">${a.className||'All Students'} · ${timeLabel}</div> </div>`;
+}).join(’’);
 }
 
 window.sendAnnouncement = async () => {
-  const title=document.getElementById('ann-title').value.trim();
-  const body=document.getElementById('ann-body').value.trim();
-  const classId=document.getElementById('ann-class').value;
-  const classText=document.getElementById('ann-class').selectedOptions[0]?.text||'All Students';
-  if(!title||!body) return toast('Fill title and message','error');
-  try {
-    await addDoc(collection(db,'announcements'),{title,body,classId,className:classText,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp()});
-    toast('Announcement sent! 📢','success');
-    document.getElementById('ann-title').value='';
-    document.getElementById('ann-body').value='';
-    loadAnnouncementsList();
-  } catch(e){ toast(e.message,'error'); }
+const title=document.getElementById(‘ann-title’).value.trim();
+const body=document.getElementById(‘ann-body’).value.trim();
+const classId=document.getElementById(‘ann-class’).value;
+const classText=document.getElementById(‘ann-class’).selectedOptions[0]?.text||‘All Students’;
+if(!title||!body) return toast(‘Fill title and message’,‘error’);
+try {
+await addDoc(collection(db,‘announcements’),{title,body,classId,className:classText,adminId:currentUser.uid,adminName:currentUserData.name,createdAt:serverTimestamp()});
+toast(‘Announcement sent! 📢’,‘success’);
+document.getElementById(‘ann-title’).value=’’;
+document.getElementById(‘ann-body’).value=’’;
+loadAnnouncementsList();
+} catch(e){ toast(e.message,‘error’); }
 };
 
 window.deleteAnnouncement = async (id) => {
-  if(!confirm('Delete this announcement?')) return;
-  await deleteDoc(doc(db,'announcements',id));
-  toast('Deleted','success');
-  loadAnnouncementsList();
+if(!confirm(‘Delete this announcement?’)) return;
+await deleteDoc(doc(db,‘announcements’,id));
+toast(‘Deleted’,‘success’);
+loadAnnouncementsList();
 };
 
 // ===== STUDENT ANNOUNCEMENTS =====
 async function loadStudentAnnouncements(){
-  const enrolled=currentUserData.enrolledClasses||[];
-  const el=document.getElementById('student-announcements');
-  if(!el) return;
-  try {
-    const snap=await getDocs(query(collection(db,'announcements'),orderBy('createdAt','desc')));
-    const oneDayAgo2 = Date.now() - (24*60*60*1000);
-    const anns=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(a=>{
-        const t=a.createdAt?.toDate?.();
-        return t && t.getTime() > oneDayAgo2 && (a.classId==='all'||enrolled.includes(a.classId));
-      }).slice(0,5);
-    if(!anns.length){el.innerHTML='<div class="empty-state" style="padding:20px"><span class="icon">📭</span>No announcements</div>';return;}
-    el.innerHTML=anns.map(a=>{
-      const t=a.createdAt?.toDate?.();
-      const h=t?Math.round((Date.now()-t.getTime())/3600000):0;
-      const lbl=h<1?'Just now':h+'h ago';
-      return`<div class="ann-card">
-        <div class="ann-card-title">📢 ${a.title||''}</div>
-        <div class="ann-card-body">${a.body||''}</div>
-        <div class="ann-card-meta">${a.className||'All Students'} · ${lbl}</div>
-      </div>`;
-    }).join('');
-  } catch(e){ el.innerHTML=''; }
+const enrolled=currentUserData.enrolledClasses||[];
+const el=document.getElementById(‘student-announcements’);
+if(!el) return;
+try {
+const snap=await getDocs(query(collection(db,‘announcements’),orderBy(‘createdAt’,‘desc’)));
+const oneDayAgo2 = Date.now() - (24*60*60*1000);
+const anns=snap.docs.map(d=>({id:d.id,…d.data()}))
+.filter(a=>{
+const t=a.createdAt?.toDate?.();
+return t && t.getTime() > oneDayAgo2 && (a.classId===‘all’||enrolled.includes(a.classId));
+}).slice(0,5);
+if(!anns.length){el.innerHTML=’<div class="empty-state" style="padding:20px"><span class="icon">📭</span>No announcements</div>’;return;}
+el.innerHTML=anns.map(a=>{
+const t=a.createdAt?.toDate?.();
+const h=t?Math.round((Date.now()-t.getTime())/3600000):0;
+const lbl=h<1?‘Just now’:h+‘h ago’;
+return`<div class="ann-card"> <div class="ann-card-title">📢 ${a.title||''}</div> <div class="ann-card-body">${a.body||''}</div> <div class="ann-card-meta">${a.className||'All Students'} · ${lbl}</div> </div>`;
+}).join(’’);
+} catch(e){ el.innerHTML=’’; }
 }
 
 // ===== TIMETABLE =====
 async function loadTimetable() {
-  const el = document.getElementById('timetable-grid');
-  if(!el) return;
-  const enrolled = currentUserData.enrolledClasses || [];
-  if(!enrolled.length) { el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No classes enrolled yet</div>'; return; }
-  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const classSnaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
-  const classes = classSnaps.filter(s=>s.exists()).map(s=>({id:s.id,...s.data()}));
-  const byDay = {};
-  days.forEach(d => byDay[d] = []);
-  classes.forEach(c => {
-    const sched = c.schedule || '';
-    days.forEach(d => {
-      if(sched.toLowerCase().includes(d.toLowerCase().slice(0,3)) || sched.toLowerCase().includes(d.toLowerCase())) {
-        byDay[d].push(c);
-      }
-    });
-  });
-  let html = '';
-  days.forEach(d => {
-    if(!byDay[d].length) return;
-    html += `<div class="timetable-day"><div class="timetable-day-label">${d}</div>${byDay[d].map(c=>`<div class="timetable-slot"><div class="timetable-time">${c.time||'TBD'}</div><div class="timetable-info"><div class="timetable-name">${c.name}</div><div class="timetable-room">${c.code||''} • ${c.room||'No room set'}</div></div></div>`).join('')}</div>`;
-  });
-  el.innerHTML = html || '<div class="empty-state"><span class="icon">ð</span>No schedule info found.</div>';
+const el = document.getElementById(‘timetable-grid’);
+if(!el) return;
+const enrolled = currentUserData.enrolledClasses || [];
+if(!enrolled.length) { el.innerHTML=’<div class="empty-state"><span class="icon">ð</span>No classes enrolled yet</div>’; return; }
+const days = [‘Monday’,‘Tuesday’,‘Wednesday’,‘Thursday’,‘Friday’,‘Saturday’];
+const classSnaps = await Promise.all(enrolled.map(id => getDoc(doc(db,‘classes’,id))));
+const classes = classSnaps.filter(s=>s.exists()).map(s=>({id:s.id,…s.data()}));
+const byDay = {};
+days.forEach(d => byDay[d] = []);
+classes.forEach(c => {
+const sched = c.schedule || ‘’;
+days.forEach(d => {
+if(sched.toLowerCase().includes(d.toLowerCase().slice(0,3)) || sched.toLowerCase().includes(d.toLowerCase())) {
+byDay[d].push(c);
+}
+});
+});
+let html = ‘’;
+days.forEach(d => {
+if(!byDay[d].length) return;
+html += `<div class="timetable-day"><div class="timetable-day-label">${d}</div>${byDay[d].map(c=>`<div class="timetable-slot"><div class="timetable-time">${c.time||‘TBD’}</div><div class="timetable-info"><div class="timetable-name">${c.name}</div><div class="timetable-room">${c.code||’’} • ${c.room||‘No room set’}</div></div></div>`).join('')}</div>`;
+});
+el.innerHTML = html || ‘<div class="empty-state"><span class="icon">ð</span>No schedule info found.</div>’;
 }
 
 // ===== LEAVE REQUESTS (Student) =====
 async function loadLeaveClassSelect() {
-  const sel = document.getElementById('leave-class-select');
-  if(!sel) return;
-  const enrolled = currentUserData.enrolledClasses || [];
-  if(!enrolled.length) { sel.innerHTML='<option value="">No classes enrolled</option>'; return; }
-  const snaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
-  sel.innerHTML = '<option value="">-- Select class --</option>' + snaps.filter(s=>s.exists()).map(s=>`<option value="${s.id}">${s.data().name}</option>`).join('');
+const sel = document.getElementById(‘leave-class-select’);
+if(!sel) return;
+const enrolled = currentUserData.enrolledClasses || [];
+if(!enrolled.length) { sel.innerHTML=’<option value="">No classes enrolled</option>’; return; }
+const snaps = await Promise.all(enrolled.map(id => getDoc(doc(db,‘classes’,id))));
+sel.innerHTML = ‘<option value="">– Select class –</option>’ + snaps.filter(s=>s.exists()).map(s=>`<option value="${s.id}">${s.data().name}</option>`).join(’’);
 }
 
 window.submitLeaveRequest = async () => {
-  const classId = document.getElementById('leave-class-select').value;
-  const from = document.getElementById('leave-from').value;
-  const to = document.getElementById('leave-to').value;
-  const reason = document.getElementById('leave-reason').value.trim();
-  if(!classId||!from||!to||!reason) return toast('Fill all fields','error');
-  if(from > to) return toast('End date must be after start date','error');
-  const classSnap = await getDoc(doc(db,'classes',classId));
-  const classData = classSnap.exists() ? classSnap.data() : {};
-  const className = classData.name || '';
-  // Collect all teacher IDs: primary + co-teachers
-  const primaryAdminId = classData.adminId || '';
-  const coTeacherIds = (classData.coTeachers||[]).map(t=>t.uid).filter(Boolean);
-  const allTeacherIds = [primaryAdminId, ...coTeacherIds].filter(Boolean);
-  await addDoc(collection(db,'leaveRequests'),{
-    studentId:currentUser.uid, studentName:currentUserData.name, studentEmail:currentUser.email,
-    classId, className, from, to, reason, status:'pending',
-    adminId: primaryAdminId,
-    allTeacherIds,  // All teachers who can approve
-    createdAt:serverTimestamp()
-  });
-  toast('Leave request submitted ✅','success');
-  document.getElementById('leave-from').value='';
-  document.getElementById('leave-to').value='';
-  document.getElementById('leave-reason').value='';
-  loadStudentLeaveList();
+const classId = document.getElementById(‘leave-class-select’).value;
+const from = document.getElementById(‘leave-from’).value;
+const to = document.getElementById(‘leave-to’).value;
+const reason = document.getElementById(‘leave-reason’).value.trim();
+if(!classId||!from||!to||!reason) return toast(‘Fill all fields’,‘error’);
+if(from > to) return toast(‘End date must be after start date’,‘error’);
+const classSnap = await getDoc(doc(db,‘classes’,classId));
+const classData = classSnap.exists() ? classSnap.data() : {};
+const className = classData.name || ‘’;
+// Collect all teacher IDs: primary + co-teachers
+const primaryAdminId = classData.adminId || ‘’;
+const coTeacherIds = (classData.coTeachers||[]).map(t=>t.uid).filter(Boolean);
+const allTeacherIds = [primaryAdminId, …coTeacherIds].filter(Boolean);
+await addDoc(collection(db,‘leaveRequests’),{
+studentId:currentUser.uid, studentName:currentUserData.name, studentEmail:currentUser.email,
+classId, className, from, to, reason, status:‘pending’,
+adminId: primaryAdminId,
+allTeacherIds,  // All teachers who can approve
+createdAt:serverTimestamp()
+});
+toast(‘Leave request submitted ✅’,‘success’);
+document.getElementById(‘leave-from’).value=’’;
+document.getElementById(‘leave-to’).value=’’;
+document.getElementById(‘leave-reason’).value=’’;
+loadStudentLeaveList();
 };
 
 async function loadStudentLeaveList() {
-  const el = document.getElementById('student-leave-list');
-  if(!el) return;
-  const q = query(collection(db,'leaveRequests'),where('studentId','==',currentUser.uid),orderBy('createdAt','desc'));
-  const snap = await getDocs(q);
-  if(snap.empty){el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No leave requests yet</div>';return;}
-  el.innerHTML = snap.docs.map(d=>{
-    const r=d.data();
-    const chip = r.status==='approved'?'chip-green':r.status==='rejected'?'chip-red':'chip-yellow';
-    return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.className||'-'}</div><div class="leave-card-meta">${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='rejected'&&r.rejectReason?`<div style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600">Reason: ${r.rejectReason}</div>`:''}</div>`;
-  }).join('');
+const el = document.getElementById(‘student-leave-list’);
+if(!el) return;
+const q = query(collection(db,‘leaveRequests’),where(‘studentId’,’==’,currentUser.uid),orderBy(‘createdAt’,‘desc’));
+const snap = await getDocs(q);
+if(snap.empty){el.innerHTML=’<div class="empty-state"><span class="icon">ð</span>No leave requests yet</div>’;return;}
+el.innerHTML = snap.docs.map(d=>{
+const r=d.data();
+const chip = r.status===‘approved’?‘chip-green’:r.status===‘rejected’?‘chip-red’:‘chip-yellow’;
+return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.className||'-'}</div><div class="leave-card-meta">${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='rejected'&&r.rejectReason?`<div style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600">Reason: ${r.rejectReason}</div>`:''}</div>`;
+}).join(’’);
 }
 
 // ===== HOLIDAYS (Admin) =====
 window.addHoliday = async () => {
-  const name = document.getElementById('holiday-name').value.trim();
-  const from = document.getElementById('holiday-from').value;
-  const to = document.getElementById('holiday-to').value;
-  if(!name||!from||!to) return toast('Fill all fields','error');
-  if(from>to) return toast('End date must be after start date','error');
-  await addDoc(collection(db,'holidays'),{name,from,to,adminId:currentUser.uid,createdAt:serverTimestamp()});
-  toast('Holiday added ð´','success');
-  document.getElementById('holiday-name').value='';
-  document.getElementById('holiday-from').value='';
-  document.getElementById('holiday-to').value='';
-  loadHolidays();
+const name = document.getElementById(‘holiday-name’).value.trim();
+const from = document.getElementById(‘holiday-from’).value;
+const to = document.getElementById(‘holiday-to’).value;
+if(!name||!from||!to) return toast(‘Fill all fields’,‘error’);
+if(from>to) return toast(‘End date must be after start date’,‘error’);
+await addDoc(collection(db,‘holidays’),{name,from,to,adminId:currentUser.uid,createdAt:serverTimestamp()});
+toast(‘Holiday added ð´’,‘success’);
+document.getElementById(‘holiday-name’).value=’’;
+document.getElementById(‘holiday-from’).value=’’;
+document.getElementById(‘holiday-to’).value=’’;
+loadHolidays();
 };
 
 async function loadHolidays() {
-  const el = document.getElementById('holidays-list');
-  if(!el) return;
-  const q = query(collection(db,'holidays'),where('adminId','==',currentUser.uid),orderBy('from','desc'));
-  const snap = await getDocs(q);
-  if(snap.empty){el.innerHTML='<div class="empty-state"><span class="icon">ð´</span>No holidays added yet</div>';return;}
-  el.innerHTML = snap.docs.map(d=>{
-    const h=d.data();
-    const dateLabel = h.from===h.to ? h.from : `${h.from} → ${h.to}`;
-    return `<div class="holiday-item"><div><div class="holiday-name">ð´ ${h.name}</div><div class="holiday-date">${dateLabel}</div></div><button class="btn btn-danger btn-sm" onclick="deleteHoliday('${d.id}')">Delete</button></div>`;
-  }).join('');
+const el = document.getElementById(‘holidays-list’);
+if(!el) return;
+const q = query(collection(db,‘holidays’),where(‘adminId’,’==’,currentUser.uid),orderBy(‘from’,‘desc’));
+const snap = await getDocs(q);
+if(snap.empty){el.innerHTML=’<div class="empty-state"><span class="icon">ð´</span>No holidays added yet</div>’;return;}
+el.innerHTML = snap.docs.map(d=>{
+const h=d.data();
+const dateLabel = h.from===h.to ? h.from : `${h.from} → ${h.to}`;
+return `<div class="holiday-item"><div><div class="holiday-name">ð´ ${h.name}</div><div class="holiday-date">${dateLabel}</div></div><button class="btn btn-danger btn-sm" onclick="deleteHoliday('${d.id}')">Delete</button></div>`;
+}).join(’’);
 }
 
 window.deleteHoliday = async (id) => {
-  if(!confirm('Delete this holiday?')) return;
-  await deleteDoc(doc(db,'holidays',id));
-  toast('Holiday removed','success');
-  loadHolidays();
+if(!confirm(‘Delete this holiday?’)) return;
+await deleteDoc(doc(db,‘holidays’,id));
+toast(‘Holiday removed’,‘success’);
+loadHolidays();
 };
 
 // ===== LEAVE MANAGEMENT (Admin) =====
 let allLeaveRequests = [];
 
 async function loadLeaveMgmt() {
-  const el = document.getElementById('leave-mgmt-list');
-  if(!el) return;
-  // Show leaves where this teacher is primary OR co-teacher
-  const q = query(collection(db,'leaveRequests'),where('allTeacherIds','array-contains',currentUser.uid),orderBy('createdAt','desc'));
-  let snap;
-  try { snap = await getDocs(q); }
-  catch(e) {
-    // Fallback for old leave requests without allTeacherIds
-    snap = await getDocs(query(collection(db,'leaveRequests'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc')));
-  }
-  allLeaveRequests = snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderLeaves('all');
+const el = document.getElementById(‘leave-mgmt-list’);
+if(!el) return;
+// Show leaves where this teacher is primary OR co-teacher
+const q = query(collection(db,‘leaveRequests’),where(‘allTeacherIds’,‘array-contains’,currentUser.uid),orderBy(‘createdAt’,‘desc’));
+let snap;
+try { snap = await getDocs(q); }
+catch(e) {
+// Fallback for old leave requests without allTeacherIds
+snap = await getDocs(query(collection(db,‘leaveRequests’),where(‘adminId’,’==’,currentUser.uid),orderBy(‘createdAt’,‘desc’)));
+}
+allLeaveRequests = snap.docs.map(d=>({id:d.id,…d.data()}));
+renderLeaves(‘all’);
 }
 
 window.filterLeaves = (status) => {
-  document.querySelectorAll('.leave-filter-btn').forEach(b=>b.classList.remove('active-filter'));
-  event.target.classList.add('active-filter');
-  renderLeaves(status);
+document.querySelectorAll(’.leave-filter-btn’).forEach(b=>b.classList.remove(‘active-filter’));
+event.target.classList.add(‘active-filter’);
+renderLeaves(status);
 };
 
 function renderLeaves(status) {
-  const el = document.getElementById('leave-mgmt-list');
-  if(!el) return;
-  const filtered = status==='all' ? allLeaveRequests : allLeaveRequests.filter(r=>r.status===status);
-  if(!filtered.length){el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No requests found</div>';return;}
-  el.innerHTML = filtered.map(r=>{
-    const chip = r.status==='approved'?'chip-green':r.status==='rejected'?'chip-red':'chip-yellow';
-    return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.studentName||'-'}</div><div class="leave-card-meta">${r.className||'-'} • ${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='pending'?`<div class="leave-actions"><button class="btn btn-green btn-sm" onclick="reviewLeave('${r.id}','approved')">Approve</button><button class="btn btn-danger btn-sm" onclick="reviewLeave('${r.id}','rejected')">Reject</button></div>`:''}</div>`;
-  }).join('');
+const el = document.getElementById(‘leave-mgmt-list’);
+if(!el) return;
+const filtered = status===‘all’ ? allLeaveRequests : allLeaveRequests.filter(r=>r.status===status);
+if(!filtered.length){el.innerHTML=’<div class="empty-state"><span class="icon">ð</span>No requests found</div>’;return;}
+el.innerHTML = filtered.map(r=>{
+const chip = r.status===‘approved’?‘chip-green’:r.status===‘rejected’?‘chip-red’:‘chip-yellow’;
+return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.studentName||'-'}</div><div class="leave-card-meta">${r.className||'-'} • ${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='pending'?`<div class="leave-actions"><button class="btn btn-green btn-sm" onclick="reviewLeave('${r.id}','approved')">Approve</button><button class="btn btn-danger btn-sm" onclick="reviewLeave('${r.id}','rejected')">Reject</button></div>`:''}</div>`;
+}).join(’’);
 }
 
 window.reviewLeave = async (id, status) => {
-  let rejectReason = '';
-  if(status==='rejected') { rejectReason = prompt('Reason for rejection (optional):') || ''; }
-  await updateDoc(doc(db,'leaveRequests',id),{status, rejectReason, reviewedAt:serverTimestamp()});
-  toast(status==='approved'?'Leave approved ✅':'Leave rejected ❌', status==='approved'?'success':'error');
-  const leaveSnap = await getDoc(doc(db,'leaveRequests',id));
-  const leave = leaveSnap.data();
-  await addDoc(collection(db,'notifications'),{
-    userId: leave.studentId,
-    title: status==='approved'?'✅ Leave Approved':'Leave Rejected',
-    body: `Your leave for ${leave.className} (${leave.from} to ${leave.to}) has been ${status}.`,
-    read: false, createdAt: serverTimestamp()
-  });
-  loadLeaveMgmt();
-  checkUnreadNotifications();
+let rejectReason = ‘’;
+if(status===‘rejected’) { rejectReason = prompt(‘Reason for rejection (optional):’) || ‘’; }
+await updateDoc(doc(db,‘leaveRequests’,id),{status, rejectReason, reviewedAt:serverTimestamp()});
+toast(status===‘approved’?‘Leave approved ✅’:‘Leave rejected ❌’, status===‘approved’?‘success’:‘error’);
+const leaveSnap = await getDoc(doc(db,‘leaveRequests’,id));
+const leave = leaveSnap.data();
+await addDoc(collection(db,‘notifications’),{
+userId: leave.studentId,
+title: status===‘approved’?‘✅ Leave Approved’:‘Leave Rejected’,
+body: `Your leave for ${leave.className} (${leave.from} to ${leave.to}) has been ${status}.`,
+read: false, createdAt: serverTimestamp()
+});
+loadLeaveMgmt();
+checkUnreadNotifications();
 };
 
 // ===== CO-TEACHERS =====
 window.openCoTeacherModal = async (classId, className) => {
-  document.getElementById('co-teacher-class-id').value = classId;
-  document.getElementById('co-teacher-class-name').textContent = className;
-  document.getElementById('co-teacher-email').value = '';
-  document.getElementById('co-teacher-modal').classList.remove('hidden');
-  loadCoTeachers(classId);
+document.getElementById(‘co-teacher-class-id’).value = classId;
+document.getElementById(‘co-teacher-class-name’).textContent = className;
+document.getElementById(‘co-teacher-email’).value = ‘’;
+document.getElementById(‘co-teacher-modal’).classList.remove(‘hidden’);
+loadCoTeachers(classId);
 };
 
 async function loadCoTeachers(classId) {
-  const el = document.getElementById('co-teachers-list');
-  const snap = await getDoc(doc(db,'classes',classId));
-  const coTeachers = snap.data()?.coTeachers || [];
-  if(!coTeachers.length){el.innerHTML='<div class="empty-state" style="padding:20px"><span class="icon">ð¨‍ð«</span>No co-teachers added</div>';return;}
-  el.innerHTML = '<div style="font-weight:700;margin-bottom:10px;font-size:13px;color:var(--muted)">CURRENT CO-TEACHERS</div>' +
-    coTeachers.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px"><div><div style="font-weight:700;font-size:14px">${t.name||t.email}</div><div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">${t.email}</div></div><button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px" onclick="removeCoTeacher('${classId}','${t.email}')">Remove</button></div>`).join('');
+const el = document.getElementById(‘co-teachers-list’);
+const snap = await getDoc(doc(db,‘classes’,classId));
+const coTeachers = snap.data()?.coTeachers || [];
+if(!coTeachers.length){el.innerHTML=’<div class="empty-state" style="padding:20px"><span class="icon">ð¨‍ð«</span>No co-teachers added</div>’;return;}
+el.innerHTML = ‘<div style="font-weight:700;margin-bottom:10px;font-size:13px;color:var(--muted)">CURRENT CO-TEACHERS</div>’ +
+coTeachers.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px"><div><div style="font-weight:700;font-size:14px">${t.name||t.email}</div><div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">${t.email}</div></div><button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px" onclick="removeCoTeacher('${classId}','${t.email}')">Remove</button></div>`).join(’’);
 }
 
 window.addCoTeacher = async () => {
-  const classId = document.getElementById('co-teacher-class-id').value;
-  const email = document.getElementById('co-teacher-email').value.trim().toLowerCase();
-  if(!email) return toast('Enter an email address','error');
-  const q = query(collection(db,'users'),where('email','==',email),where('role','==','admin'));
-  const snap = await getDocs(q);
-  if(snap.empty) return toast('No teacher found with that email','error');
-  const teacher = {email, name: snap.docs[0].data().name||email, uid: snap.docs[0].id};
-  const classRef = doc(db,'classes',classId);
-  const classSnap = await getDoc(classRef);
-  const existing = classSnap.data()?.coTeachers || [];
-  if(existing.find(t=>t.email===email)) return toast('Already a co-teacher','error');
-  await updateDoc(classRef,{coTeachers:[...existing,teacher]});
-  toast(`${teacher.name} added as co-teacher ✅`,'success');
-  document.getElementById('co-teacher-email').value='';
-  loadCoTeachers(classId);
+const classId = document.getElementById(‘co-teacher-class-id’).value;
+const email = document.getElementById(‘co-teacher-email’).value.trim().toLowerCase();
+if(!email) return toast(‘Enter an email address’,‘error’);
+const q = query(collection(db,‘users’),where(‘email’,’==’,email),where(‘role’,’==’,‘admin’));
+const snap = await getDocs(q);
+if(snap.empty) return toast(‘No teacher found with that email’,‘error’);
+const teacher = {email, name: snap.docs[0].data().name||email, uid: snap.docs[0].id};
+const classRef = doc(db,‘classes’,classId);
+const classSnap = await getDoc(classRef);
+const existing = classSnap.data()?.coTeachers || [];
+if(existing.find(t=>t.email===email)) return toast(‘Already a co-teacher’,‘error’);
+await updateDoc(classRef,{coTeachers:[…existing,teacher]});
+toast(`${teacher.name} added as co-teacher ✅`,‘success’);
+document.getElementById(‘co-teacher-email’).value=’’;
+loadCoTeachers(classId);
 };
 
 window.removeCoTeacher = async (classId, email) => {
-  if(!confirm('Remove this co-teacher?')) return;
-  const classRef = doc(db,'classes',classId);
-  const classSnap = await getDoc(classRef);
-  const existing = classSnap.data()?.coTeachers || [];
-  await updateDoc(classRef,{coTeachers:existing.filter(t=>t.email!==email)});
-  toast('Co-teacher removed','success');
-  loadCoTeachers(classId);
+if(!confirm(‘Remove this co-teacher?’)) return;
+const classRef = doc(db,‘classes’,classId);
+const classSnap = await getDoc(classRef);
+const existing = classSnap.data()?.coTeachers || [];
+await updateDoc(classRef,{coTeachers:existing.filter(t=>t.email!==email)});
+toast(‘Co-teacher removed’,‘success’);
+loadCoTeachers(classId);
 };
 
 // ===== NOTIFICATIONS =====
 async function checkUnreadNotifications() {
-  if(!currentUser) return;
-  try {
-    const q = query(collection(db,'notifications'),where('userId','==',currentUser.uid),where('read','==',false));
-    const snap = await getDocs(q);
-    const dot = document.getElementById('notif-dot');
-    if(dot) dot.classList.toggle('show', snap.size > 0);
-  } catch(e){}
+if(!currentUser) return;
+try {
+const q = query(collection(db,‘notifications’),where(‘userId’,’==’,currentUser.uid),where(‘read’,’==’,false));
+const snap = await getDocs(q);
+const dot = document.getElementById(‘notif-dot’);
+if(dot) dot.classList.toggle(‘show’, snap.size > 0);
+} catch(e){}
 }
 
 window.showNotifications = async () => {
-  const q = query(collection(db,'notifications'),where('userId','==',currentUser.uid),orderBy('createdAt','desc'));
-  const snap = await getDocs(q);
-  const notifs = snap.docs.slice(0,10);
-  await Promise.all(notifs.filter(d=>!d.data().read).map(d=>updateDoc(doc(db,'notifications',d.id),{read:true})));
-  document.getElementById('notif-dot')?.classList.remove('show');
-  if(!notifs.length){ toast('No notifications yet ð',''); return; }
-  const msg = notifs.map(d=>`• ${d.data().title}: ${d.data().body}`).join('\n\n');
-  alert('ð Notifications\n\n' + msg);
+const q = query(collection(db,‘notifications’),where(‘userId’,’==’,currentUser.uid),orderBy(‘createdAt’,‘desc’));
+const snap = await getDocs(q);
+const notifs = snap.docs.slice(0,10);
+await Promise.all(notifs.filter(d=>!d.data().read).map(d=>updateDoc(doc(db,‘notifications’,d.id),{read:true})));
+document.getElementById(‘notif-dot’)?.classList.remove(‘show’);
+if(!notifs.length){ toast(‘No notifications yet ð’,’’); return; }
+const msg = notifs.map(d=>`• ${d.data().title}: ${d.data().body}`).join(’\n\n’);
+alert(‘ð Notifications\n\n’ + msg);
 };
 
 async function notifySessionStart(session) {
-  try {
-    const classSnap = await getDoc(doc(db,'classes',session.classId));
-    const enrolled = classSnap.data()?.enrolledStudents || [];
-    await Promise.all(enrolled.map(uid => addDoc(collection(db,'notifications'),{
-      userId: uid,
-      title: 'ð¢ Session Started',
-      body: `${session.className} session is now active. Check in now!`,
-      read: false, createdAt: serverTimestamp()
-    })));
-  } catch(e){}
+try {
+const classSnap = await getDoc(doc(db,‘classes’,session.classId));
+const enrolled = classSnap.data()?.enrolledStudents || [];
+await Promise.all(enrolled.map(uid => addDoc(collection(db,‘notifications’),{
+userId: uid,
+title: ‘ð¢ Session Started’,
+body: `${session.className} session is now active. Check in now!`,
+read: false, createdAt: serverTimestamp()
+})));
+} catch(e){}
 }
 
 // ===== QR CODE (Teacher - Show QR) =====
@@ -2650,135 +2701,143 @@ let qrInstance = null;
 let qrScanner = null;
 
 window.showInstantPinBanner = (className, checkInPin, checkOutPin, sessionId) => {
-  const banner = document.getElementById('instant-pin-banner');
-  if(!banner) return;
-  document.getElementById('instant-class-name').textContent = '🟢 ' + className + ' — Session Active';
-  document.getElementById('instant-checkin-pin').textContent = checkInPin;
-  document.getElementById('instant-checkout-pin').textContent = checkOutPin;
-  banner.style.display = 'block';
-  banner.scrollIntoView({behavior:'smooth', block:'start'});
-  // Auto hide after 5 minutes (sessions panel refresh will take over)
-  setTimeout(()=>{ banner.style.display='none'; }, 300000);
+const banner = document.getElementById(‘instant-pin-banner’);
+if(!banner) return;
+document.getElementById(‘instant-class-name’).textContent = ‘🟢 ’ + className + ’ — Session Active’;
+document.getElementById(‘instant-checkin-pin’).textContent = checkInPin;
+document.getElementById(‘instant-checkout-pin’).textContent = checkOutPin;
+banner.style.display = ‘block’;
+banner.scrollIntoView({behavior:‘smooth’, block:‘start’});
+// Auto hide after 5 minutes (sessions panel refresh will take over)
+setTimeout(()=>{ banner.style.display=‘none’; }, 300000);
 };
 
 window.showQrCode = (sessionId, className) => {
-  document.getElementById('qr-session-info').textContent = className;
-  const qrContainer = document.getElementById('qr-code-display');
-  qrContainer.innerHTML = '<canvas id="qr-canvas"></canvas>';
-  const qrData = JSON.stringify({sessionId, type:'attendx-checkin'});
-  // Use qrcode npm package (QRCode.toCanvas)
-  if(typeof QRCode !== 'undefined' && QRCode.toCanvas) {
-    QRCode.toCanvas(document.getElementById('qr-canvas'), qrData, {width:220, margin:2}, err=>{
-      if(err) showQrFallback(qrContainer, qrData);
-    });
-  } else {
-    showQrFallback(qrContainer, qrData);
-  }
-  document.getElementById('qr-modal').classList.remove('hidden');
+document.getElementById(‘qr-session-info’).textContent = className;
+const qrContainer = document.getElementById(‘qr-code-display’);
+qrContainer.innerHTML = ‘’;
+const qrData = JSON.stringify({sessionId, type:‘attendx-checkin’});
+try {
+if(typeof QRCode !== ‘undefined’) {
+new QRCode(qrContainer, {
+text: qrData,
+width: 220,
+height: 220,
+colorDark: ‘#000000’,
+colorLight: ‘#ffffff’,
+correctLevel: QRCode.CorrectLevel.M
+});
+} else {
+showQrFallback(qrContainer, qrData);
+}
+} catch(e) {
+showQrFallback(qrContainer, qrData);
+}
+document.getElementById(‘qr-modal’).classList.remove(‘hidden’);
 };
 
 function showQrFallback(container, data) {
-  // Fallback: show session ID text if QR fails
-  container.innerHTML = `<div style="padding:20px;font-family:monospace;font-size:11px;word-break:break-all;max-width:220px;text-align:center;color:#000">`
-    + `<div style="font-size:14px;font-weight:800;margin-bottom:8px">📱 QR Unavailable</div>`
-    + `<div style="font-size:12px;color:#666">Share the session PIN instead</div></div>`;
+// Fallback: show session ID text if QR fails
+container.innerHTML = `<div style="padding:20px;font-family:monospace;font-size:11px;word-break:break-all;max-width:220px;text-align:center;color:#000">`
++ `<div style="font-size:14px;font-weight:800;margin-bottom:8px">📱 QR Unavailable</div>`
++ `<div style="font-size:12px;color:#666">Share the session PIN instead</div></div>`;
 }
 
 window.closeQrModal = () => {
-  document.getElementById('qr-modal').classList.add('hidden');
-  if(qrInstance) { qrInstance.clear(); qrInstance = null; }
+document.getElementById(‘qr-modal’).classList.add(‘hidden’);
+if(qrInstance) { qrInstance.clear(); qrInstance = null; }
 };
 
 // ===== QR SCANNER (Student - Scan QR) =====
 let qrScannerActive = false;
 
 window.toggleQrScanner = () => {
-  if(qrScannerActive) {
-    stopQrScanner();
-  } else {
-    startQrScanner();
-  }
+if(qrScannerActive) {
+stopQrScanner();
+} else {
+startQrScanner();
+}
 };
 
 function startQrScanner() {
-  const wrap = document.getElementById('qr-reader-wrap');
-  const btn = document.getElementById('qr-scan-btn');
-  wrap.style.display = 'block';
-  btn.textContent = '⏹ Stop Scanner';
-  btn.classList.add('scanning');
-  qrScannerActive = true;
-  qrScanner = new Html5Qrcode('qr-reader');
-  qrScanner.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 220, height: 220 } },
-    async (decodedText) => {
-      stopQrScanner();
-      await handleQrCheckin(decodedText);
-    },
-    () => {} // ignore scan errors
-  ).catch(err => {
-    toast('Camera access denied. Please allow camera permissions.', 'error');
-    stopQrScanner();
-  });
+const wrap = document.getElementById(‘qr-reader-wrap’);
+const btn = document.getElementById(‘qr-scan-btn’);
+wrap.style.display = ‘block’;
+btn.textContent = ‘⏹ Stop Scanner’;
+btn.classList.add(‘scanning’);
+qrScannerActive = true;
+qrScanner = new Html5Qrcode(‘qr-reader’);
+qrScanner.start(
+{ facingMode: ‘environment’ },
+{ fps: 10, qrbox: { width: 220, height: 220 } },
+async (decodedText) => {
+stopQrScanner();
+await handleQrCheckin(decodedText);
+},
+() => {} // ignore scan errors
+).catch(err => {
+toast(‘Camera access denied. Please allow camera permissions.’, ‘error’);
+stopQrScanner();
+});
 }
 
 function stopQrScanner() {
-  const wrap = document.getElementById('qr-reader-wrap');
-  const btn = document.getElementById('qr-scan-btn');
-  if(qrScanner) {
-    qrScanner.stop().then(()=>{ qrScanner.clear(); qrScanner=null; }).catch(()=>{});
-  }
-  wrap.style.display = 'none';
-  btn.textContent = 'ð· Scan QR Code';
-  btn.classList.remove('scanning');
-  qrScannerActive = false;
+const wrap = document.getElementById(‘qr-reader-wrap’);
+const btn = document.getElementById(‘qr-scan-btn’);
+if(qrScanner) {
+qrScanner.stop().then(()=>{ qrScanner.clear(); qrScanner=null; }).catch(()=>{});
+}
+wrap.style.display = ‘none’;
+btn.textContent = ‘ð· Scan QR Code’;
+btn.classList.remove(‘scanning’);
+qrScannerActive = false;
 }
 
 async function handleQrCheckin(decodedText) {
-  try {
-    const data = JSON.parse(decodedText);
-    if(!data.sessionId || data.type !== 'attendx-checkin') return toast('Invalid QR code ❌', 'error');
-    const sessionId = data.sessionId;
-    // Verify session is still active
-    const sessionSnap = await getDoc(doc(db,'sessions',sessionId));
-    if(!sessionSnap.exists() || !sessionSnap.data().active) return toast('Session is no longer active ❌', 'error');
-    const session = {id:sessionId,...sessionSnap.data()};
-    // Check geofence
-    if(!window._inGeofence) return toast('You are not within the class area ⛔', 'error');
-    // Check if already checked in
-    const attQ = query(collection(db,'attendance'),where('sessionId','==',sessionId),where('studentId','==',currentUser.uid));
-    const attSnap = await getDocs(attQ);
-    const existing = attSnap.docs[0];
-    const now = serverTimestamp();
-    if(!existing || !existing.data().checkIn) {
-      // Check in
-      await addDoc(collection(db,'attendance'),{
-        sessionId, classId:session.classId, className:session.className,
-        studentId:currentUser.uid, studentName:currentUserData.name,
-        studentEmail:currentUser.email, studentIdNum:currentUserData.studentId,
-        checkIn:true, checkInTime:now, checkOut:false, checkOutTime:null,
-        distance:window._studentDist||0, method:'qr'
-      });
-      toast('✅ Checked in via QR! ' + session.className, 'success');
-      document.getElementById('checkin-mode-chip').textContent = 'ð´ CHECK-OUT MODE';
-      document.getElementById('checkin-mode-chip').className = 'chip chip-red';
-      currentCheckinMode = 'out';
-    } else if(existing.data().checkIn && !existing.data().checkOut) {
-      // Check out
-      await updateDoc(doc(db,'attendance',existing.id),{checkOut:true,checkOutTime:now});
-      toast('✅ Checked out via QR! ' + session.className, 'success');
-      document.getElementById('checkin-pin-area').classList.add('hidden');
-    } else {
-      toast('You have already checked in and out for this session.', 'error');
-    }
-    loadStudentDashboard();
-  } catch(e) {
-    toast('Invalid QR code. Please try again.', 'error');
-  }
+try {
+const data = JSON.parse(decodedText);
+if(!data.sessionId || data.type !== ‘attendx-checkin’) return toast(‘Invalid QR code ❌’, ‘error’);
+const sessionId = data.sessionId;
+// Verify session is still active
+const sessionSnap = await getDoc(doc(db,‘sessions’,sessionId));
+if(!sessionSnap.exists() || !sessionSnap.data().active) return toast(‘Session is no longer active ❌’, ‘error’);
+const session = {id:sessionId,…sessionSnap.data()};
+// Check geofence
+if(!window._inGeofence) return toast(‘You are not within the class area ⛔’, ‘error’);
+// Check if already checked in
+const attQ = query(collection(db,‘attendance’),where(‘sessionId’,’==’,sessionId),where(‘studentId’,’==’,currentUser.uid));
+const attSnap = await getDocs(attQ);
+const existing = attSnap.docs[0];
+const now = serverTimestamp();
+if(!existing || !existing.data().checkIn) {
+// Check in
+await addDoc(collection(db,‘attendance’),{
+sessionId, classId:session.classId, className:session.className,
+studentId:currentUser.uid, studentName:currentUserData.name,
+studentEmail:currentUser.email, studentIdNum:currentUserData.studentId,
+checkIn:true, checkInTime:now, checkOut:false, checkOutTime:null,
+distance:window._studentDist||0, method:‘qr’
+});
+toast(’✅ Checked in via QR! ’ + session.className, ‘success’);
+document.getElementById(‘checkin-mode-chip’).textContent = ‘ð´ CHECK-OUT MODE’;
+document.getElementById(‘checkin-mode-chip’).className = ‘chip chip-red’;
+currentCheckinMode = ‘out’;
+} else if(existing.data().checkIn && !existing.data().checkOut) {
+// Check out
+await updateDoc(doc(db,‘attendance’,existing.id),{checkOut:true,checkOutTime:now});
+toast(’✅ Checked out via QR! ’ + session.className, ‘success’);
+document.getElementById(‘checkin-pin-area’).classList.add(‘hidden’);
+} else {
+toast(‘You have already checked in and out for this session.’, ‘error’);
+}
+loadStudentDashboard();
+} catch(e) {
+toast(‘Invalid QR code. Please try again.’, ‘error’);
+}
 }
 
 // PWA
-if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if(‘serviceWorker’ in navigator) window.addEventListener(‘load’,()=>navigator.serviceWorker.register(‘sw.js’).catch(()=>{}));
 
 </script>
 
