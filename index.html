@@ -9,9 +9,6 @@
 <link rel="manifest" href="manifest.json"/>
 <title>AttendX — Attendance Tracker</title>
 <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark-init")</script>
-<!-- QR Code generation & scanning libraries -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
@@ -560,9 +557,9 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 
 <!-- LOADING -->
 
-<div id="loading-screen">
-  <div class="loader-logo">AttendX</div>
-  <div class="loader-bar"><div class="loader-fill"></div></div>
+<div id="loading-screen" style="position:fixed;inset:0;background:#f0f4ff;display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:20px">
+  <div class="loader-logo" style="font-size:2.8rem;font-weight:800;background:linear-gradient(135deg,#4361ee,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">AttendX</div>
+  <div style="width:220px;height:4px;background:#dde3f0;border-radius:4px;overflow:hidden"><div class="loader-fill" style="height:100%;background:linear-gradient(90deg,#4361ee,#7c3aed);animation:load 1.5s ease infinite"></div></div>
   <div style="font-size:14px;color:var(--muted);font-family:var(--font-mono)">Connecting to Firebase...</div>
 </div>
 
@@ -1001,7 +998,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <div class="download-row">
       <button class="btn btn-secondary btn-sm" onclick="downloadReport('csv')">⬇ CSV Report</button>
       <button class="btn btn-secondary btn-sm" onclick="downloadReport('json')">⬇ JSON Export</button>
-      <button class="btn btn-secondary btn-sm" onclick="downloadReport('pdf')">📄 PDF Report</button>
     </div>
   </div>
 
@@ -1147,22 +1143,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
   </div>
 </div>
 
-<!-- QR CODE MODAL (Teacher) -->
-
-<div id="qr-modal" class="modal-overlay hidden">
-  <div class="modal" style="text-align:center">
-    <button class="modal-close" onclick="closeQrModal()">&#x2715;</button>
-    <div class="modal-title">📱 Session QR Code</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">Students can scan this QR code to check in instantly. Display this on your screen or projector.</p>
-    <div id="qr-session-info" style="font-weight:800;font-size:17px;margin-bottom:16px;color:var(--text)"></div>
-    <div style="display:flex;justify-content:center;margin-bottom:16px">
-      <div id="qr-code-display" style="padding:16px;background:#fff;border-radius:16px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,0.1)"></div>
-    </div>
-    <p style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">QR code refreshes automatically. Valid only while session is active.</p>
-    <button class="btn btn-primary" onclick="closeQrModal()" style="margin-top:16px">Close</button>
-  </div>
-</div>
-
 <!-- RESET PIN MODAL -->
 
 <div id="reset-pin-modal" class="modal-overlay hidden">
@@ -1243,7 +1223,16 @@ const downloadFile = (content, filename, type) => {
 };
 
 // ===== AUTH =====
+const _loadingFallback = setTimeout(() => {
+  const ls = document.getElementById('loading-screen');
+  if (ls && ls.style.display !== 'none') {
+    ls.style.display = 'none';
+    document.getElementById('auth-screen').classList.remove('hidden');
+  }
+}, 8000);
+
 onAuthStateChanged(auth, async user => {
+  clearTimeout(_loadingFallback);
   document.getElementById('loading-screen').style.display = 'none';
   if(user) {
     currentUser = user;
@@ -2689,138 +2678,6 @@ body: `${session.className} session is now active. Check in now!`,
 read: false, createdAt: serverTimestamp()
 })));
 } catch(e){}
-}
-
-// ===== QR CODE (Teacher - Show QR) =====
-let qrInstance = null;
-let qrScanner = null;
-
-window.showInstantPinBanner = (className, checkInPin, checkOutPin, sessionId) => {
-const banner = document.getElementById(‘instant-pin-banner’);
-if(!banner) return;
-document.getElementById(‘instant-class-name’).textContent = ‘🟢 ’ + className + ’ — Session Active’;
-document.getElementById(‘instant-checkin-pin’).textContent = checkInPin;
-document.getElementById(‘instant-checkout-pin’).textContent = checkOutPin;
-banner.style.display = ‘block’;
-banner.scrollIntoView({behavior:‘smooth’, block:‘start’});
-// Auto hide after 5 minutes (sessions panel refresh will take over)
-setTimeout(()=>{ banner.style.display=‘none’; }, 300000);
-};
-
-window.showQrCode = (sessionId, className) => {
-document.getElementById(‘qr-session-info’).textContent = className;
-const qrContainer = document.getElementById(‘qr-code-display’);
-qrContainer.innerHTML = ‘<canvas id="qr-canvas"></canvas>’;
-const qrData = JSON.stringify({sessionId, type:‘attendx-checkin’});
-// Use qrcode npm package (QRCode.toCanvas)
-if(typeof QRCode !== ‘undefined’ && QRCode.toCanvas) {
-QRCode.toCanvas(document.getElementById(‘qr-canvas’), qrData, {width:220, margin:2}, err=>{
-if(err) showQrFallback(qrContainer, qrData);
-});
-} else {
-showQrFallback(qrContainer, qrData);
-}
-document.getElementById(‘qr-modal’).classList.remove(‘hidden’);
-};
-
-function showQrFallback(container, data) {
-// Fallback: show session ID text if QR fails
-container.innerHTML = `<div style="padding:20px;font-family:monospace;font-size:11px;word-break:break-all;max-width:220px;text-align:center;color:#000">`
-+ `<div style="font-size:14px;font-weight:800;margin-bottom:8px">📱 QR Unavailable</div>`
-+ `<div style="font-size:12px;color:#666">Share the session PIN instead</div></div>`;
-}
-
-window.closeQrModal = () => {
-document.getElementById(‘qr-modal’).classList.add(‘hidden’);
-if(qrInstance) { qrInstance.clear(); qrInstance = null; }
-};
-
-// ===== QR SCANNER (Student - Scan QR) =====
-let qrScannerActive = false;
-
-window.toggleQrScanner = () => {
-if(qrScannerActive) {
-stopQrScanner();
-} else {
-startQrScanner();
-}
-};
-
-function startQrScanner() {
-const wrap = document.getElementById(‘qr-reader-wrap’);
-const btn = document.getElementById(‘qr-scan-btn’);
-wrap.style.display = ‘block’;
-btn.textContent = ‘⏹ Stop Scanner’;
-btn.classList.add(‘scanning’);
-qrScannerActive = true;
-qrScanner = new Html5Qrcode(‘qr-reader’);
-qrScanner.start(
-{ facingMode: ‘environment’ },
-{ fps: 10, qrbox: { width: 220, height: 220 } },
-async (decodedText) => {
-stopQrScanner();
-await handleQrCheckin(decodedText);
-},
-() => {} // ignore scan errors
-).catch(err => {
-toast(‘Camera access denied. Please allow camera permissions.’, ‘error’);
-stopQrScanner();
-});
-}
-
-function stopQrScanner() {
-const wrap = document.getElementById(‘qr-reader-wrap’);
-const btn = document.getElementById(‘qr-scan-btn’);
-if(qrScanner) {
-qrScanner.stop().then(()=>{ qrScanner.clear(); qrScanner=null; }).catch(()=>{});
-}
-wrap.style.display = ‘none’;
-btn.textContent = ‘ð· Scan QR Code’;
-btn.classList.remove(‘scanning’);
-qrScannerActive = false;
-}
-
-async function handleQrCheckin(decodedText) {
-try {
-const data = JSON.parse(decodedText);
-if(!data.sessionId || data.type !== ‘attendx-checkin’) return toast(‘Invalid QR code ❌’, ‘error’);
-const sessionId = data.sessionId;
-// Verify session is still active
-const sessionSnap = await getDoc(doc(db,‘sessions’,sessionId));
-if(!sessionSnap.exists() || !sessionSnap.data().active) return toast(‘Session is no longer active ❌’, ‘error’);
-const session = {id:sessionId,…sessionSnap.data()};
-// Check geofence
-if(!window._inGeofence) return toast(‘You are not within the class area ⛔’, ‘error’);
-// Check if already checked in
-const attQ = query(collection(db,‘attendance’),where(‘sessionId’,’==’,sessionId),where(‘studentId’,’==’,currentUser.uid));
-const attSnap = await getDocs(attQ);
-const existing = attSnap.docs[0];
-const now = serverTimestamp();
-if(!existing || !existing.data().checkIn) {
-// Check in
-await addDoc(collection(db,‘attendance’),{
-sessionId, classId:session.classId, className:session.className,
-studentId:currentUser.uid, studentName:currentUserData.name,
-studentEmail:currentUser.email, studentIdNum:currentUserData.studentId,
-checkIn:true, checkInTime:now, checkOut:false, checkOutTime:null,
-distance:window._studentDist||0, method:‘qr’
-});
-toast(’✅ Checked in via QR! ’ + session.className, ‘success’);
-document.getElementById(‘checkin-mode-chip’).textContent = ‘ð´ CHECK-OUT MODE’;
-document.getElementById(‘checkin-mode-chip’).className = ‘chip chip-red’;
-currentCheckinMode = ‘out’;
-} else if(existing.data().checkIn && !existing.data().checkOut) {
-// Check out
-await updateDoc(doc(db,‘attendance’,existing.id),{checkOut:true,checkOutTime:now});
-toast(’✅ Checked out via QR! ’ + session.className, ‘success’);
-document.getElementById(‘checkin-pin-area’).classList.add(‘hidden’);
-} else {
-toast(‘You have already checked in and out for this session.’, ‘error’);
-}
-loadStudentDashboard();
-} catch(e) {
-toast(‘Invalid QR code. Please try again.’, ‘error’);
-}
 }
 
 // PWA
