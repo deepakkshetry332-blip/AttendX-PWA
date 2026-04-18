@@ -2039,7 +2039,30 @@ async function loadReport(classId) {
   </tr>`;}).join('')}</tbody></table>`;
 }
 
-// downloadReport: see new implementation in features section
+window.downloadReport = (fmt) => {
+  const records = window._reportRecords || [];
+  if(!records.length) return toast('No data. Select a class first.','error');
+  if(fmt==='csv'){
+    const rows=[
+      ['Student','ID','Email','Class','Date','CheckIn','CheckOut','Status'],
+      ...records.map(r=>[
+        r.studentName||'',
+        r.studentIdNum||'',
+        r.studentEmail||'',
+        r.className||'',
+        r.checkInTime?.toDate?.().toLocaleDateString()||'',
+        r.checkInTime?.toDate?.().toLocaleTimeString()||'',
+        r.checkOutTime?.toDate?.().toLocaleTimeString()||'',
+        r.checkIn?'Present':'Absent'
+      ])
+    ];
+    downloadFile(rows.map(r=>r.map(c=>'"'+c+'"').join(',')).join('\n'),'attendance_report.csv','text/csv');
+    toast('CSV downloaded!','success');
+  } else if(fmt==='json'){
+    downloadFile(JSON.stringify(records,null,2),'attendance_report.json','application/json');
+    toast('JSON downloaded!','success');
+  }
+};
 
 // ===== SETTINGS =====
 async function loadAdminProfile() {
