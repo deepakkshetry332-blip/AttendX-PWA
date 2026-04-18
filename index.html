@@ -50,14 +50,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 .loader-fill{height:100%;background:linear-gradient(90deg,var(–accent),var(–accent2));animation:load 1.5s ease infinite}
 @keyframes load{0%{width:0%;margin-left:0}50%{width:60%}100%{width:0%;margin-left:100%}}
 
-/* AUTH */
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#f0f4ff 0%,#e8edff 100%);position:relative;z-index:1;}
-.auth-card{background:var(–surface);border:1px solid var(–border);border-radius:24px;padding:40px 36px;width:100%;max-width:440px;box-shadow:var(–shadow-lg)}
-.auth-logo{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(–accent),var(–accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
-.auth-sub{color:var(–muted);font-size:14px;margin-bottom:32px;font-family:var(–font-mono)}
-.role-tabs{display:flex;gap:8px;margin-bottom:28px;background:var(–bg);padding:6px;border-radius:14px}
-.role-tab{flex:1;padding:12px;border:none;background:transparent;color:var(–muted);border-radius:10px;cursor:pointer;font-family:var(–font-main);font-weight:700;font-size:15px;transition:all .2s}
-.role-tab.active{background:var(–surface);color:var(–accent);box-shadow:var(–shadow);border:1px solid var(–border)}
+/* AUTH - X/Twitter Style */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#000000;position:relative;z-index:1;}
+.auth-card{background:#000000;border:none;border-radius:0;padding:40px 36px;width:100%;max-width:400px;box-shadow:none}
+.auth-logo{font-size:2.4rem;font-weight:900;color:#ffffff;margin-bottom:28px;letter-spacing:-1px}
+.auth-sub{color:#71767b;font-size:15px;margin-bottom:28px;font-family:var(–font-main);font-weight:400}
+.role-tabs{display:flex;gap:0;margin-bottom:28px;background:transparent;padding:0;border-radius:0;border-bottom:1px solid #2f3336}
+.role-tab{flex:1;padding:16px 12px;border:none;background:transparent;color:#71767b;border-radius:0;cursor:pointer;font-family:var(–font-main);font-weight:600;font-size:15px;transition:all .2s;border-bottom:2px solid transparent;margin-bottom:-1px}
+.role-tab.active{background:transparent;color:#ffffff;box-shadow:none;border:none;border-bottom:2px solid #1d9bf0;color:#ffffff}
+.role-tab:hover{background:rgba(255,255,255,0.05)}
+/* X-style social buttons */
+.x-social-btn{width:100%;padding:14px 20px;border-radius:50px;font-family:var(–font-main);font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px;border:1px solid #2f3336;background:#000000;color:#ffffff}
+.x-social-btn:hover{background:#1a1a1a}
+.x-social-btn svg{width:20px;height:20px;flex-shrink:0}
+.x-divider{display:flex;align-items:center;gap:14px;margin:16px 0}
+.x-divider span{color:#71767b;font-size:13px;white-space:nowrap}
+.x-divider::before,.x-divider::after{content:’’;flex:1;height:1px;background:#2f3336}
 
 /* FORMS */
 .form-group{margin-bottom:20px}
@@ -322,7 +330,7 @@ body.dark .session-banner { background: linear-gradient(135deg,#14311f,#0c2a3d);
 body.dark .ann-card { background: var(–surface2); border-color: var(–border); }
 body.dark .att-warning { background: linear-gradient(135deg,#3d2e00,#4a3800); border-color: #d97706; }
 body.dark .att-warning.danger { background: linear-gradient(135deg,#3d0000,#4a0000); border-color: #dc2626; }
-body.dark #auth-screen { background: linear-gradient(135deg,#0a0d1a 0%,#0f1117 100%); }
+body.dark #auth-screen { background: #000000; }
 body.dark .geo-visual { background: var(–surface2); border-color: var(–border); }
 body.dark .pin-btn { background: var(–surface2); border-color: var(–border); color: var(–text); }
 body.dark .confirm-box { background: #3d1515; border-color: #7f1d1d; }
@@ -517,27 +525,72 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 <div id="auth-screen" class="hidden">
   <div class="auth-card">
     <div class="auth-logo">AttendX</div>
-    <div class="auth-sub">// Smart Attendance System</div>
+    <div class="auth-sub">Sign in to your account</div>
     <div class="role-tabs">
-      <button class="role-tab active" onclick="switchRole('student')">🎒 Student</button>
-      <button class="role-tab" onclick="switchRole('admin')">🎓 Teacher</button>
+      <button class="role-tab active" onclick="switchRole('student')">Student</button>
+      <button class="role-tab" onclick="switchRole('admin')">Teacher</button>
     </div>
-    <div id="student-auth">
-      <div class="form-group"><label>Email Address</label><input type="email" id="student-email" placeholder="you@college.edu"/></div>
-      <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="student-password" placeholder="••••••••"/><button class="pw-eye" onclick="togglePw('student-password',this)" type="button">👁️</button></div></div>
-      <div class="remember-row"><input type="checkbox" id="student-remember"/><label for="student-remember">Remember me</label></div>
-      <button class="btn btn-primary" onclick="loginStudent()">Sign In</button>
-      <button class="link-btn" onclick="showForgotPassword()">Forgot password?</button>
-      <button class="link-btn" onclick="showRegister()">Don't have an account? Register here</button>
+
+```
+<!-- STUDENT AUTH -->
+<div id="student-auth">
+  <div class="form-group" style="margin-bottom:16px">
+    <input type="email" id="student-email" placeholder="Email address"
+      style="width:100%;padding:16px 18px;background:#000;border:1px solid #2f3336;border-radius:4px;color:#fff;font-family:var(--font-main);font-size:16px;outline:none;transition:border-color .2s;box-sizing:border-box"
+      onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='#2f3336'"/>
+  </div>
+  <div class="form-group" style="margin-bottom:16px">
+    <div class="pw-wrap">
+      <input type="password" id="student-password" placeholder="Password"
+        style="width:100%;padding:16px 48px 16px 18px;background:#000;border:1px solid #2f3336;border-radius:4px;color:#fff;font-family:var(--font-main);font-size:16px;outline:none;transition:border-color .2s;box-sizing:border-box"
+        onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='#2f3336'"/>
+      <button class="pw-eye" onclick="togglePw('student-password',this)" type="button" style="color:#71767b">👁️</button>
     </div>
-    <div id="admin-auth" class="hidden">
-      <div class="form-group"><label>Teacher Email</label><input type="email" id="admin-email" placeholder="teacher@college.edu"/></div>
-      <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="admin-password" placeholder="••••••••"/><button class="pw-eye" onclick="togglePw('admin-password',this)" type="button">👁️</button></div></div>
-      <div class="remember-row"><input type="checkbox" id="admin-remember"/><label for="admin-remember">Remember me</label></div>
-      <button class="btn btn-primary" onclick="loginAdmin()">Teacher Sign In</button>
-      <button class="link-btn" onclick="showForgotPassword()">Forgot password?</button>
-      <button class="link-btn" onclick="showAdminRegister()">Register as Teacher</button>
+  </div>
+  <div class="remember-row" style="margin-bottom:20px">
+    <input type="checkbox" id="student-remember"/>
+    <label for="student-remember" style="color:#71767b">Remember me</label>
+  </div>
+  <button onclick="loginStudent()"
+    style="width:100%;padding:16px;border:none;border-radius:50px;background:#ffffff;color:#000000;font-family:var(--font-main);font-weight:700;font-size:16px;cursor:pointer;transition:background .2s;margin-bottom:12px"
+    onmouseover="this.style.background='#e7e7e7'" onmouseout="this.style.background='#ffffff'">Sign in</button>
+  <button class="link-btn" onclick="showForgotPassword()" style="color:#1d9bf0;font-family:var(--font-main);font-size:14px">Forgot password?</button>
+  <div class="x-divider"><span>or</span></div>
+  <button class="link-btn" onclick="showRegister()"
+    style="width:100%;padding:14px;border:1px solid #2f3336;border-radius:50px;background:transparent;color:#ffffff;font-family:var(--font-main);font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;margin-top:0;display:block;text-align:center;transition:background .2s"
+    onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='transparent'">Create new account</button>
+</div>
+
+<!-- TEACHER AUTH -->
+<div id="admin-auth" class="hidden">
+  <div class="form-group" style="margin-bottom:16px">
+    <input type="email" id="admin-email" placeholder="Teacher email"
+      style="width:100%;padding:16px 18px;background:#000;border:1px solid #2f3336;border-radius:4px;color:#fff;font-family:var(--font-main);font-size:16px;outline:none;transition:border-color .2s;box-sizing:border-box"
+      onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='#2f3336'"/>
+  </div>
+  <div class="form-group" style="margin-bottom:16px">
+    <div class="pw-wrap">
+      <input type="password" id="admin-password" placeholder="Password"
+        style="width:100%;padding:16px 48px 16px 18px;background:#000;border:1px solid #2f3336;border-radius:4px;color:#fff;font-family:var(--font-main);font-size:16px;outline:none;transition:border-color .2s;box-sizing:border-box"
+        onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='#2f3336'"/>
+      <button class="pw-eye" onclick="togglePw('admin-password',this)" type="button" style="color:#71767b">👁️</button>
     </div>
+  </div>
+  <div class="remember-row" style="margin-bottom:20px">
+    <input type="checkbox" id="admin-remember"/>
+    <label for="admin-remember" style="color:#71767b">Remember me</label>
+  </div>
+  <button onclick="loginAdmin()"
+    style="width:100%;padding:16px;border:none;border-radius:50px;background:#ffffff;color:#000000;font-family:var(--font-main);font-weight:700;font-size:16px;cursor:pointer;transition:background .2s;margin-bottom:12px"
+    onmouseover="this.style.background='#e7e7e7'" onmouseout="this.style.background='#ffffff'">Sign in</button>
+  <button class="link-btn" onclick="showForgotPassword()" style="color:#1d9bf0;font-family:var(--font-main);font-size:14px">Forgot password?</button>
+  <div class="x-divider"><span>or</span></div>
+  <button class="link-btn" onclick="showAdminRegister()"
+    style="width:100%;padding:14px;border:1px solid #2f3336;border-radius:50px;background:transparent;color:#ffffff;font-family:var(--font-main);font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;margin-top:0;display:block;text-align:center;transition:background .2s"
+    onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='transparent'">Register as Teacher</button>
+</div>
+```
+
   </div>
 </div>
 
