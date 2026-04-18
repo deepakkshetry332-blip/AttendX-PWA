@@ -213,7 +213,7 @@ opacity:0;transition:opacity .3s;
 
 /* TABLE OVERFLOW FIX */
 .table-scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;border:1px solid var(–border);}
-.data-table{width:100%;border-collapse:collapse;min-width:420px;}
+.data-table{width:100%;border-collapse:collapse;min-width:320px;}
 
 .data-table th{padding:14px 16px;text-align:left;font-size:12px;font-weight:800;color:var(–muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(–border);background:var(–bg)}
 .data-table td{padding:14px 16px;border-bottom:1px solid var(–border);font-size:15px;font-weight:500}
@@ -2031,12 +2031,12 @@ async function loadReport(classId) {
   if(!records.length){el.innerHTML='<div class="empty-state"><span class="icon">📊</span>No data</div>';return;}
   const byStudent={};
   records.forEach(r=>{if(!byStudent[r.studentId])byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,id:r.studentIdNum,sessions:0,present:0};byStudent[r.studentId].sessions++;if(r.checkIn)byStudent[r.studentId].present++;});
-  el.innerHTML=`<table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
+  el.innerHTML=`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
   ${Object.values(byStudent).map(s=>{const pct=Math.round(s.present/s.sessions*100);return`<tr>
     <td style="font-weight:700">${s.name||'–'}</td><td style="font-family:var(--font-mono)">${s.id||'–'}</td>
     <td>${s.sessions}</td><td>${s.present}</td>
     <td><span class="chip ${pct>=75?'chip-green':pct>=50?'chip-yellow':'chip-red'}">${pct}%</span></td>
-  </tr>`;}).join('')}</tbody></table>`;
+  </tr>`;}).join('')}</tbody></table></div>`;
 }
 
 window.downloadReport = (fmt) => {
