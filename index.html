@@ -353,6 +353,32 @@ background: linear-gradient(135deg,#818cf8,#a78bfa);
 background-clip: text;
 }
 
+/* TIMETABLE */
+.timetable-day{margin-bottom:18px}
+.timetable-day-label{font-weight:800;font-size:13px;color:var(–muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-left:4px}
+.timetable-slot{background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(124,58,237,0.08));border:1.5px solid rgba(67,97,238,0.2);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px}
+.timetable-time{font-family:var(–font-mono);font-size:13px;font-weight:700;color:var(–accent);min-width:110px}
+.timetable-info{flex:1}
+.timetable-name{font-weight:800;font-size:15px;color:var(–text)}
+.timetable-room{font-size:12px;color:var(–muted);margin-top:2px}
+/* LEAVE */
+.leave-card{background:var(–surface2);border:1.5px solid var(–border);border-radius:14px;padding:16px;margin-bottom:12px}
+.leave-card-header{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px}
+.leave-card-name{font-weight:800;font-size:15px;color:var(–text)}
+.leave-card-meta{font-size:12px;color:var(–muted);font-family:var(–font-mono);margin-top:4px}
+.leave-card-reason{font-size:13px;color:var(–muted);line-height:1.5;margin-top:6px}
+.leave-actions{display:flex;gap:8px;margin-top:12px}
+/* HOLIDAY */
+.holiday-item{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(–surface2);border:1.5px solid var(–border);border-radius:12px;margin-bottom:10px}
+.holiday-name{font-weight:800;font-size:15px;color:var(–text)}
+.holiday-date{font-size:12px;color:var(–muted);font-family:var(–font-mono);margin-top:3px}
+.active-filter{border-color:var(–accent)!important;color:var(–accent)!important}
+/* NOTIFICATION BELL */
+.notif-bell{background:none;border:2px solid var(–border);color:var(–muted);padding:8px 12px;border-radius:10px;cursor:pointer;font-size:16px;transition:all .2s;position:relative}
+.notif-bell:hover{border-color:var(–accent);color:var(–accent)}
+.notif-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(–red);display:none}
+.notif-dot.show{display:block}
+
 /* THEME TOGGLE BTN */
 .theme-toggle { background:none; border:2px solid var(–border); color:var(–muted); padding:8px 12px; border-radius:10px; cursor:pointer; font-size:16px; transition:all .2s; }
 .theme-toggle:hover { border-color:var(–accent); color:var(–accent); }
@@ -640,6 +666,25 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
   </div>
 </div>
 
+<!-- CO-TEACHER MODAL -->
+
+<div id="co-teacher-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('co-teacher-modal')">&#x2715;</button>
+    <div class="modal-title">👨‍🏫 Co-Teachers</div>
+    <input type="hidden" id="co-teacher-class-id"/>
+    <div id="co-teacher-class-name" style="font-size:14px;color:var(--muted);margin-bottom:16px;font-weight:700"></div>
+    <div class="form-group">
+      <label>Add Co-Teacher by Email</label>
+      <div style="display:flex;gap:10px">
+        <input type="email" id="co-teacher-email" placeholder="teacher@college.edu" style="flex:1"/>
+        <button class="btn btn-primary btn-sm" onclick="addCoTeacher()" style="white-space:nowrap">+ Add</button>
+      </div>
+    </div>
+    <div id="co-teachers-list" style="margin-top:16px"></div>
+  </div>
+</div>
+
 <!-- MAIN APP -->
 
 <div id="main-app" class="hidden">
@@ -648,6 +693,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <div class="top-user">
       <div class="user-badge" id="top-role-badge">Student</div>
       <div class="user-badge" id="top-user-name" style="color:var(--text)">...</div>
+      <button class="notif-bell" onclick="showNotifications()" title="Notifications">🔔<span class="notif-dot" id="notif-dot"></span></button>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle dark mode">🌙</button>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
@@ -661,6 +707,8 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <button class="nav-tab" onclick="showPanel('check-in','student-nav')">Check In/Out</button>
     <button class="nav-tab" onclick="showPanel('attendance','student-nav')">My Records</button>
     <button class="nav-tab" onclick="showPanel('calendar','student-nav')">📅 Calendar</button>
+    <button class="nav-tab" onclick="showPanel('timetable','student-nav')">🗓 Timetable</button>
+    <button class="nav-tab" onclick="showPanel('leave-request','student-nav')">📝 Leave</button>
   </div>
 
   <!-- ADMIN NAV -->
@@ -671,6 +719,8 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <button class="nav-tab" onclick="showPanel('sessions','admin-nav')">Sessions</button>
     <button class="nav-tab" onclick="showPanel('students','admin-nav')">Students</button>
     <button class="nav-tab" onclick="showPanel('reports','admin-nav')">Reports</button>
+    <button class="nav-tab" onclick="showPanel('holidays','admin-nav')">🌴 Holidays</button>
+    <button class="nav-tab" onclick="showPanel('leave-mgmt','admin-nav')">📝 Leaves</button>
     <button class="nav-tab" onclick="showPanel('announcements','admin-nav')">📢 Announce</button>
     <button class="nav-tab" onclick="showPanel('settings','admin-nav')">Settings</button>
   </div>
@@ -908,6 +958,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <div class="download-row">
       <button class="btn btn-secondary btn-sm" onclick="downloadReport('csv')">⬇ CSV Report</button>
       <button class="btn btn-secondary btn-sm" onclick="downloadReport('json')">⬇ JSON Export</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadReport('pdf')">📄 PDF Report</button>
     </div>
   </div>
 
@@ -943,6 +994,66 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
       <div id="admin-profile-info" style="font-size:15px;color:var(--muted);line-height:2">Loading...</div>
     </div>
   </div>
+
+  <!-- TIMETABLE PANEL (Student) -->
+
+  <div class="panel" id="panel-timetable">
+    <div class="card">
+      <div class="card-title"><div class="icon">🗓</div>My Weekly Timetable</div>
+      <div id="timetable-grid"></div>
+    </div>
+  </div>
+
+  <!-- LEAVE REQUEST PANEL (Student) -->
+
+  <div class="panel" id="panel-leave-request">
+    <div class="card">
+      <div class="card-title"><div class="icon">📝</div>Submit Leave Request</div>
+      <div class="form-group"><label>Select Class</label><select id="leave-class-select"><option value="">-- Select class --</option></select></div>
+      <div class="form-group"><label>From Date</label><input type="date" id="leave-from"/></div>
+      <div class="form-group"><label>To Date</label><input type="date" id="leave-to"/></div>
+      <div class="form-group"><label>Reason</label><textarea id="leave-reason" rows="3" style="width:100%;padding:14px 18px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font-main);font-size:15px;outline:none;resize:vertical" placeholder="Briefly explain your reason..."></textarea></div>
+      <button class="btn btn-primary" onclick="submitLeaveRequest()">Submit Request</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon">📋</div>My Leave History</div>
+      <div id="student-leave-list"><div class="empty-state"><span class="icon">📝</span>No leave requests yet</div></div>
+    </div>
+  </div>
+
+  <!-- HOLIDAYS PANEL (Admin) -->
+
+  <div class="panel" id="panel-holidays">
+    <div class="card">
+      <div class="card-title"><div class="icon">🌴</div>Add Holiday / No-Class Day</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Absences on marked holidays will not be counted against students.</p>
+      <div class="form-group"><label>Holiday Name</label><input type="text" id="holiday-name" placeholder="e.g. Diwali, Republic Day"/></div>
+      <div class="form-group"><label>From Date</label><input type="date" id="holiday-from"/></div>
+      <div class="form-group"><label>To Date</label><input type="date" id="holiday-to"/></div>
+      <button class="btn btn-primary btn-sm" onclick="addHoliday()">+ Add Holiday</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon">📅</div>Upcoming Holidays</div>
+      <div id="holidays-list"><div class="empty-state"><span class="icon">🌴</span>No holidays added yet</div></div>
+    </div>
+  </div>
+
+  <!-- LEAVE MANAGEMENT PANEL (Admin) -->
+
+  <div class="panel" id="panel-leave-mgmt">
+    <div class="card">
+      <div class="card-title"><div class="icon">📝</div>Student Leave Requests</div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm leave-filter-btn active-filter" onclick="filterLeaves('all')">All</button>
+        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('pending')">⏳ Pending</button>
+        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('approved')">✅ Approved</button>
+        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('rejected')">❌ Rejected</button>
+      </div>
+      <div id="leave-mgmt-list"><div class="empty-state"><span class="icon">📝</span>No leave requests yet</div></div>
+    </div>
+  </div>
+
+  <!-- CO-TEACHER MODAL trigger in manage-classes -->
 
   <div class="panel" id="panel-announcements">
     <div class="card">
@@ -1100,10 +1211,10 @@ function initApp() {
   startInactivityTimer();
   if(isAdmin) {
     document.getElementById('panel-admin-dashboard').classList.add('active');
-    loadAdminDashboard(); loadAdminClasses(); loadAdminSessions(); loadAdminStudents(); loadAdminProfile(); loadAnnouncementClasses();
+    loadAdminDashboard(); loadAdminClasses(); loadAdminSessions(); loadAdminStudents(); loadAdminProfile(); loadAnnouncementClasses(); checkUnreadNotifications();
   } else {
     document.getElementById('panel-dashboard').classList.add('active');
-    loadStudentDashboard(); loadStudentClasses(); loadActiveSessions(); loadStudentAnnouncements();
+    loadStudentDashboard(); loadStudentClasses(); loadActiveSessions(); loadStudentAnnouncements(); checkUnreadNotifications();
   }
 }
 
@@ -1197,6 +1308,10 @@ window.showPanel = (panelId, navId) => {
   if(panelId==='my-classes') loadStudentClasses();
   if(panelId==='calendar') loadCalendar();
   if(panelId==='announcements'){loadAnnouncementClasses();loadAnnouncementsList();}
+  if(panelId==='timetable') loadTimetable();
+  if(panelId==='leave-request'){loadLeaveClassSelect();loadStudentLeaveList();}
+  if(panelId==='holidays') loadHolidays();
+  if(panelId==='leave-mgmt') loadLeaveMgmt();
 };
 
 // ===== STUDENT DASHBOARD =====
@@ -1702,6 +1817,7 @@ window.startSession = async () => {
       checkInPin,checkOutPin,lat:pos.coords.latitude,lng:pos.coords.longitude,radius,active:true,startTime:serverTimestamp(),endTime:null
     });
     toast(`Session started! ✅ Check-In PIN: ${checkInPin} | Check-Out PIN: ${checkOutPin}`,'success');
+    notifySessionStart({classId,className:classSnap.data().name,id:sessionRef.id});
     loadAdminSessions(); loadAdminDashboard();
   }, ()=>toast('Location access required!','error'));
 };
@@ -1857,12 +1973,7 @@ async function loadReport(classId) {
   </tr>`;}).join('')}</tbody></table>`;
 }
 
-window.downloadReport = fmt => {
-  const records=window._reportRecords||[];
-  if(!records.length) return toast('No data to download','error');
-  if(fmt==='csv'){const rows=[['Student','ID','Email','Class','Date','CheckIn','CheckOut','Status'],...records.map(r=>[r.studentName||'',r.studentIdNum||'',r.studentEmail||'',r.className||'',r.checkInTime?.toDate().toLocaleDateString()||'',r.checkInTime?.toDate().toLocaleTimeString()||'',r.checkOutTime?.toDate().toLocaleTimeString()||'',r.checkIn?'Present':'Absent'])];downloadFile(rows.map(r=>r.join(',')).join('\n'),'report.csv','text/csv');}
-  else downloadFile(JSON.stringify(records,null,2),'report.json','application/json');
-};
+// downloadReport moved to new implementation below
 
 // ===== SETTINGS =====
 async function loadAdminProfile() {
@@ -2223,6 +2334,239 @@ async function loadStudentAnnouncements(){
       </div>`;
     }).join('');
   } catch(e){ el.innerHTML=''; }
+}
+
+// ===== TIMETABLE =====
+async function loadTimetable() {
+  const el = document.getElementById('timetable-grid');
+  if(!el) return;
+  const enrolled = currentUserData.enrolledClasses || [];
+  if(!enrolled.length) { el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No classes enrolled yet</div>'; return; }
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const classSnaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
+  const classes = classSnaps.filter(s=>s.exists()).map(s=>({id:s.id,...s.data()}));
+  const byDay = {};
+  days.forEach(d => byDay[d] = []);
+  classes.forEach(c => {
+    const sched = c.schedule || '';
+    days.forEach(d => {
+      if(sched.toLowerCase().includes(d.toLowerCase().slice(0,3)) || sched.toLowerCase().includes(d.toLowerCase())) {
+        byDay[d].push(c);
+      }
+    });
+  });
+  let html = '';
+  days.forEach(d => {
+    if(!byDay[d].length) return;
+    html += `<div class="timetable-day"><div class="timetable-day-label">${d}</div>${byDay[d].map(c=>`<div class="timetable-slot"><div class="timetable-time">${c.time||'TBD'}</div><div class="timetable-info"><div class="timetable-name">${c.name}</div><div class="timetable-room">${c.code||''} • ${c.room||'No room set'}</div></div></div>`).join('')}</div>`;
+  });
+  el.innerHTML = html || '<div class="empty-state"><span class="icon">ð</span>No schedule info found.</div>';
+}
+
+// ===== LEAVE REQUESTS (Student) =====
+async function loadLeaveClassSelect() {
+  const sel = document.getElementById('leave-class-select');
+  if(!sel) return;
+  const enrolled = currentUserData.enrolledClasses || [];
+  if(!enrolled.length) { sel.innerHTML='<option value="">No classes enrolled</option>'; return; }
+  const snaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
+  sel.innerHTML = '<option value="">-- Select class --</option>' + snaps.filter(s=>s.exists()).map(s=>`<option value="${s.id}">${s.data().name}</option>`).join('');
+}
+
+window.submitLeaveRequest = async () => {
+  const classId = document.getElementById('leave-class-select').value;
+  const from = document.getElementById('leave-from').value;
+  const to = document.getElementById('leave-to').value;
+  const reason = document.getElementById('leave-reason').value.trim();
+  if(!classId||!from||!to||!reason) return toast('Fill all fields','error');
+  if(from > to) return toast('End date must be after start date','error');
+  const classSnap = await getDoc(doc(db,'classes',classId));
+  const className = classSnap.exists() ? classSnap.data().name : '';
+  await addDoc(collection(db,'leaveRequests'),{
+    studentId:currentUser.uid, studentName:currentUserData.name, studentEmail:currentUser.email,
+    classId, className, from, to, reason, status:'pending',
+    adminId: classSnap.data()?.adminId || '', createdAt:serverTimestamp()
+  });
+  toast('Leave request submitted ✅','success');
+  document.getElementById('leave-from').value='';
+  document.getElementById('leave-to').value='';
+  document.getElementById('leave-reason').value='';
+  loadStudentLeaveList();
+};
+
+async function loadStudentLeaveList() {
+  const el = document.getElementById('student-leave-list');
+  if(!el) return;
+  const q = query(collection(db,'leaveRequests'),where('studentId','==',currentUser.uid),orderBy('createdAt','desc'));
+  const snap = await getDocs(q);
+  if(snap.empty){el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No leave requests yet</div>';return;}
+  el.innerHTML = snap.docs.map(d=>{
+    const r=d.data();
+    const chip = r.status==='approved'?'chip-green':r.status==='rejected'?'chip-red':'chip-yellow';
+    return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.className||'-'}</div><div class="leave-card-meta">${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='rejected'&&r.rejectReason?`<div style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600">Reason: ${r.rejectReason}</div>`:''}</div>`;
+  }).join('');
+}
+
+// ===== HOLIDAYS (Admin) =====
+window.addHoliday = async () => {
+  const name = document.getElementById('holiday-name').value.trim();
+  const from = document.getElementById('holiday-from').value;
+  const to = document.getElementById('holiday-to').value;
+  if(!name||!from||!to) return toast('Fill all fields','error');
+  if(from>to) return toast('End date must be after start date','error');
+  await addDoc(collection(db,'holidays'),{name,from,to,adminId:currentUser.uid,createdAt:serverTimestamp()});
+  toast('Holiday added ð´','success');
+  document.getElementById('holiday-name').value='';
+  document.getElementById('holiday-from').value='';
+  document.getElementById('holiday-to').value='';
+  loadHolidays();
+};
+
+async function loadHolidays() {
+  const el = document.getElementById('holidays-list');
+  if(!el) return;
+  const q = query(collection(db,'holidays'),where('adminId','==',currentUser.uid),orderBy('from','desc'));
+  const snap = await getDocs(q);
+  if(snap.empty){el.innerHTML='<div class="empty-state"><span class="icon">ð´</span>No holidays added yet</div>';return;}
+  el.innerHTML = snap.docs.map(d=>{
+    const h=d.data();
+    const dateLabel = h.from===h.to ? h.from : `${h.from} → ${h.to}`;
+    return `<div class="holiday-item"><div><div class="holiday-name">ð´ ${h.name}</div><div class="holiday-date">${dateLabel}</div></div><button class="btn btn-danger btn-sm" onclick="deleteHoliday('${d.id}')">Delete</button></div>`;
+  }).join('');
+}
+
+window.deleteHoliday = async (id) => {
+  if(!confirm('Delete this holiday?')) return;
+  await deleteDoc(doc(db,'holidays',id));
+  toast('Holiday removed','success');
+  loadHolidays();
+};
+
+// ===== LEAVE MANAGEMENT (Admin) =====
+let allLeaveRequests = [];
+
+async function loadLeaveMgmt() {
+  const el = document.getElementById('leave-mgmt-list');
+  if(!el) return;
+  const q = query(collection(db,'leaveRequests'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc'));
+  const snap = await getDocs(q);
+  allLeaveRequests = snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderLeaves('all');
+}
+
+window.filterLeaves = (status) => {
+  document.querySelectorAll('.leave-filter-btn').forEach(b=>b.classList.remove('active-filter'));
+  event.target.classList.add('active-filter');
+  renderLeaves(status);
+};
+
+function renderLeaves(status) {
+  const el = document.getElementById('leave-mgmt-list');
+  if(!el) return;
+  const filtered = status==='all' ? allLeaveRequests : allLeaveRequests.filter(r=>r.status===status);
+  if(!filtered.length){el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No requests found</div>';return;}
+  el.innerHTML = filtered.map(r=>{
+    const chip = r.status==='approved'?'chip-green':r.status==='rejected'?'chip-red':'chip-yellow';
+    return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.studentName||'-'}</div><div class="leave-card-meta">${r.className||'-'} • ${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='pending'?`<div class="leave-actions"><button class="btn btn-green btn-sm" onclick="reviewLeave('${r.id}','approved')">Approve</button><button class="btn btn-danger btn-sm" onclick="reviewLeave('${r.id}','rejected')">Reject</button></div>`:''}</div>`;
+  }).join('');
+}
+
+window.reviewLeave = async (id, status) => {
+  let rejectReason = '';
+  if(status==='rejected') { rejectReason = prompt('Reason for rejection (optional):') || ''; }
+  await updateDoc(doc(db,'leaveRequests',id),{status, rejectReason, reviewedAt:serverTimestamp()});
+  toast(status==='approved'?'Leave approved ✅':'Leave rejected ❌', status==='approved'?'success':'error');
+  const leaveSnap = await getDoc(doc(db,'leaveRequests',id));
+  const leave = leaveSnap.data();
+  await addDoc(collection(db,'notifications'),{
+    userId: leave.studentId,
+    title: status==='approved'?'✅ Leave Approved':'Leave Rejected',
+    body: `Your leave for ${leave.className} (${leave.from} to ${leave.to}) has been ${status}.`,
+    read: false, createdAt: serverTimestamp()
+  });
+  loadLeaveMgmt();
+  checkUnreadNotifications();
+};
+
+// ===== CO-TEACHERS =====
+window.openCoTeacherModal = async (classId, className) => {
+  document.getElementById('co-teacher-class-id').value = classId;
+  document.getElementById('co-teacher-class-name').textContent = className;
+  document.getElementById('co-teacher-email').value = '';
+  document.getElementById('co-teacher-modal').classList.remove('hidden');
+  loadCoTeachers(classId);
+};
+
+async function loadCoTeachers(classId) {
+  const el = document.getElementById('co-teachers-list');
+  const snap = await getDoc(doc(db,'classes',classId));
+  const coTeachers = snap.data()?.coTeachers || [];
+  if(!coTeachers.length){el.innerHTML='<div class="empty-state" style="padding:20px"><span class="icon">ð¨‍ð«</span>No co-teachers added</div>';return;}
+  el.innerHTML = '<div style="font-weight:700;margin-bottom:10px;font-size:13px;color:var(--muted)">CURRENT CO-TEACHERS</div>' +
+    coTeachers.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px"><div><div style="font-weight:700;font-size:14px">${t.name||t.email}</div><div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">${t.email}</div></div><button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px" onclick="removeCoTeacher('${classId}','${t.email}')">Remove</button></div>`).join('');
+}
+
+window.addCoTeacher = async () => {
+  const classId = document.getElementById('co-teacher-class-id').value;
+  const email = document.getElementById('co-teacher-email').value.trim().toLowerCase();
+  if(!email) return toast('Enter an email address','error');
+  const q = query(collection(db,'users'),where('email','==',email),where('role','==','admin'));
+  const snap = await getDocs(q);
+  if(snap.empty) return toast('No teacher found with that email','error');
+  const teacher = {email, name: snap.docs[0].data().name||email, uid: snap.docs[0].id};
+  const classRef = doc(db,'classes',classId);
+  const classSnap = await getDoc(classRef);
+  const existing = classSnap.data()?.coTeachers || [];
+  if(existing.find(t=>t.email===email)) return toast('Already a co-teacher','error');
+  await updateDoc(classRef,{coTeachers:[...existing,teacher]});
+  toast(`${teacher.name} added as co-teacher ✅`,'success');
+  document.getElementById('co-teacher-email').value='';
+  loadCoTeachers(classId);
+};
+
+window.removeCoTeacher = async (classId, email) => {
+  if(!confirm('Remove this co-teacher?')) return;
+  const classRef = doc(db,'classes',classId);
+  const classSnap = await getDoc(classRef);
+  const existing = classSnap.data()?.coTeachers || [];
+  await updateDoc(classRef,{coTeachers:existing.filter(t=>t.email!==email)});
+  toast('Co-teacher removed','success');
+  loadCoTeachers(classId);
+};
+
+// ===== NOTIFICATIONS =====
+async function checkUnreadNotifications() {
+  if(!currentUser) return;
+  try {
+    const q = query(collection(db,'notifications'),where('userId','==',currentUser.uid),where('read','==',false));
+    const snap = await getDocs(q);
+    const dot = document.getElementById('notif-dot');
+    if(dot) dot.classList.toggle('show', snap.size > 0);
+  } catch(e){}
+}
+
+window.showNotifications = async () => {
+  const q = query(collection(db,'notifications'),where('userId','==',currentUser.uid),orderBy('createdAt','desc'));
+  const snap = await getDocs(q);
+  const notifs = snap.docs.slice(0,10);
+  await Promise.all(notifs.filter(d=>!d.data().read).map(d=>updateDoc(doc(db,'notifications',d.id),{read:true})));
+  document.getElementById('notif-dot')?.classList.remove('show');
+  if(!notifs.length){ toast('No notifications yet ð',''); return; }
+  const msg = notifs.map(d=>`• ${d.data().title}: ${d.data().body}`).join('\n\n');
+  alert('ð Notifications\n\n' + msg);
+};
+
+async function notifySessionStart(session) {
+  try {
+    const classSnap = await getDoc(doc(db,'classes',session.classId));
+    const enrolled = classSnap.data()?.enrolledStudents || [];
+    await Promise.all(enrolled.map(uid => addDoc(collection(db,'notifications'),{
+      userId: uid,
+      title: 'ð¢ Session Started',
+      body: `${session.className} session is now active. Check in now!`,
+      read: false, createdAt: serverTimestamp()
+    })));
+  } catch(e){}
 }
 
 // PWA
