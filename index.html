@@ -10,7 +10,7 @@
 <title>AttendX — Attendance Tracker</title>
 <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark-init")</script>
 <!-- QR Code generation & scanning libraries -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -237,7 +237,8 @@ opacity:0;transition:opacity .3s;
 .modal-close{float:right;background:var(–bg);border:2px solid var(–border);color:var(–muted);cursor:pointer;font-size:18px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 
 /* SESSION BANNER */
-.session-banner{background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:2px solid #a7f3d0;border-radius:16px;padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+.session-banner{background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:2px solid #a7f3d0;border-radius:16px;padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px;color:#1e293b}
+.session-banner *{color:inherit}
 .session-pulse{width:14px;height:14px;border-radius:50%;background:var(–green);box-shadow:0 0 0 0 rgba(5,150,105,0.4);animation:pulse-dot 2s infinite;flex-shrink:0}
 @keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(5,150,105,0.4)}70%{box-shadow:0 0 0 12px rgba(5,150,105,0)}100%{box-shadow:0 0 0 0 rgba(5,150,105,0)}}
 
@@ -329,7 +330,7 @@ body.dark .logout-btn:hover { border-color: #ef4444; color: #ef4444; background:
 body.dark .nav-tab { color: var(–muted); }
 body.dark .nav-tab.active { color: #818cf8; border-bottom-color: #818cf8; }
 body.dark .modal-close { background: var(–surface2); border-color: var(–border); color: var(–muted); }
-body.dark .session-banner { background: linear-gradient(135deg,#14311f,#0c2a3d); border-color: #166534; }
+body.dark .session-banner { background: linear-gradient(135deg,#0d2b1a,#0a1f30); border-color: #166534; color: #e8eaf6; }
 body.dark .ann-card { background: var(–surface2); border-color: var(–border); }
 body.dark .att-warning { background: linear-gradient(135deg,#3d2e00,#4a3800); border-color: #d97706; }
 body.dark .att-warning.danger { background: linear-gradient(135deg,#3d0000,#4a0000); border-color: #dc2626; }
@@ -339,6 +340,12 @@ body.dark .pin-btn { background: var(–surface2); border-color: var(–border);
 body.dark .confirm-box { background: #3d1515; border-color: #7f1d1d; }
 body.dark .user-badge { background: var(–surface2); border-color: var(–border); }
 body.dark .inactivity-bar { background: #d97706; }
+body.dark .panel { background: transparent; }
+body.dark #main-app { background: var(–bg); }
+body.dark .session-banner * { color: inherit; }
+body.dark .leave-card { background: var(–surface2); border-color: var(–border); }
+body.dark .holiday-item { background: var(–surface2); border-color: var(–border); }
+body.dark .timetable-slot { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.2); }
 
 body.dark .pin-box { background: var(–surface2); border-color: var(–border); color: #818cf8; }
 body.dark .pin-box.filled { background: rgba(129,140,248,0.1); border-color: #818cf8; }
@@ -952,6 +959,21 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
         🔑 Two random PINs will be auto-generated.
       </div>
       <button class="btn btn-green btn-sm" onclick="startSession()">📍 Start Session</button>
+    </div>
+    <!-- Instant PIN Banner shown right after session starts -->
+    <div id="instant-pin-banner" style="display:none;background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:2px solid #059669;border-radius:16px;padding:20px;margin-bottom:16px">
+      <div style="font-weight:800;font-size:16px;margin-bottom:12px;color:#065f46" id="instant-class-name"></div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:800;color:#065f46;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">🔵 Check-In PIN</div>
+          <div id="instant-checkin-pin" style="font-size:36px;font-weight:900;font-family:var(--font-mono);color:#4361ee;letter-spacing:.1em"></div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:800;color:#065f46;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">🔴 Check-Out PIN</div>
+          <div id="instant-checkout-pin" style="font-size:36px;font-weight:900;font-family:var(--font-mono);color:#dc2626;letter-spacing:.1em"></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#065f46;margin-top:10px;font-weight:600">⚡ Session is live! Share these PINs with your students.</div>
     </div>
     <div class="card">
       <div class="card-title"><div class="icon">⚡</div>Active Sessions</div>
@@ -1849,12 +1871,15 @@ window.startSession = async () => {
   const cls=classSnap.data();
   navigator.geolocation.getCurrentPosition(async pos=>{
     const checkInPin=genPin(4), checkOutPin=genPin(4);
-    await addDoc(collection(db,'sessions'),{
+    const sessionRef = await addDoc(collection(db,'sessions'),{
       classId,className:cls.name,classCode:cls.code,adminId:currentUser.uid,adminName:currentUserData.name,
       checkInPin,checkOutPin,lat:pos.coords.latitude,lng:pos.coords.longitude,radius,active:true,startTime:serverTimestamp(),endTime:null
     });
-    toast(`Session started! ✅ Check-In PIN: ${checkInPin} | Check-Out PIN: ${checkOutPin}`,'success');
-    notifySessionStart({classId,className:classSnap.data().name,id:sessionRef.id});
+    // Show PIN immediately in a prominent toast
+    toast(`🟢 Session started! Check-In: ${checkInPin} | Check-Out: ${checkOutPin}`,'success');
+    // Show inline PIN banner immediately without waiting for Firestore reload
+    showInstantPinBanner(cls.name, checkInPin, checkOutPin, sessionRef.id);
+    notifySessionStart({classId,className:cls.name,id:sessionRef.id});
     loadAdminSessions(); loadAdminDashboard();
   }, ()=>toast('Location access required!','error'));
 };
@@ -1997,7 +2022,8 @@ async function loadReport(classId) {
   let attQ=classId?query(collection(db,'attendance'),where('classId','==',classId)):query(collection(db,'attendance'));
   const snap=await getDocs(attQ);
   const records=snap.docs.map(d=>({id:d.id,...d.data()}));
-  window._reportRecords=records;
+  window._reportRecords = records;
+  console.log('Report records loaded:', records.length);
   const el=document.getElementById('report-data');
   if(!records.length){el.innerHTML='<div class="empty-state"><span class="icon">📊</span>No data</div>';return;}
   const byStudent={};
@@ -2010,7 +2036,7 @@ async function loadReport(classId) {
   </tr>`;}).join('')}</tbody></table>`;
 }
 
-// downloadReport moved to new implementation below
+// downloadReport: see new implementation in features section
 
 // ===== SETTINGS =====
 async function loadAdminProfile() {
@@ -2418,11 +2444,18 @@ window.submitLeaveRequest = async () => {
   if(!classId||!from||!to||!reason) return toast('Fill all fields','error');
   if(from > to) return toast('End date must be after start date','error');
   const classSnap = await getDoc(doc(db,'classes',classId));
-  const className = classSnap.exists() ? classSnap.data().name : '';
+  const classData = classSnap.exists() ? classSnap.data() : {};
+  const className = classData.name || '';
+  // Collect all teacher IDs: primary + co-teachers
+  const primaryAdminId = classData.adminId || '';
+  const coTeacherIds = (classData.coTeachers||[]).map(t=>t.uid).filter(Boolean);
+  const allTeacherIds = [primaryAdminId, ...coTeacherIds].filter(Boolean);
   await addDoc(collection(db,'leaveRequests'),{
     studentId:currentUser.uid, studentName:currentUserData.name, studentEmail:currentUser.email,
     classId, className, from, to, reason, status:'pending',
-    adminId: classSnap.data()?.adminId || '', createdAt:serverTimestamp()
+    adminId: primaryAdminId,
+    allTeacherIds,  // All teachers who can approve
+    createdAt:serverTimestamp()
   });
   toast('Leave request submitted ✅','success');
   document.getElementById('leave-from').value='';
@@ -2485,8 +2518,14 @@ let allLeaveRequests = [];
 async function loadLeaveMgmt() {
   const el = document.getElementById('leave-mgmt-list');
   if(!el) return;
-  const q = query(collection(db,'leaveRequests'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc'));
-  const snap = await getDocs(q);
+  // Show leaves where this teacher is primary OR co-teacher
+  const q = query(collection(db,'leaveRequests'),where('allTeacherIds','array-contains',currentUser.uid),orderBy('createdAt','desc'));
+  let snap;
+  try { snap = await getDocs(q); }
+  catch(e) {
+    // Fallback for old leave requests without allTeacherIds
+    snap = await getDocs(query(collection(db,'leaveRequests'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc')));
+  }
   allLeaveRequests = snap.docs.map(d=>({id:d.id,...d.data()}));
   renderLeaves('all');
 }
@@ -2610,22 +2649,40 @@ async function notifySessionStart(session) {
 let qrInstance = null;
 let qrScanner = null;
 
+window.showInstantPinBanner = (className, checkInPin, checkOutPin, sessionId) => {
+  const banner = document.getElementById('instant-pin-banner');
+  if(!banner) return;
+  document.getElementById('instant-class-name').textContent = '🟢 ' + className + ' — Session Active';
+  document.getElementById('instant-checkin-pin').textContent = checkInPin;
+  document.getElementById('instant-checkout-pin').textContent = checkOutPin;
+  banner.style.display = 'block';
+  banner.scrollIntoView({behavior:'smooth', block:'start'});
+  // Auto hide after 5 minutes (sessions panel refresh will take over)
+  setTimeout(()=>{ banner.style.display='none'; }, 300000);
+};
+
 window.showQrCode = (sessionId, className) => {
   document.getElementById('qr-session-info').textContent = className;
   const qrContainer = document.getElementById('qr-code-display');
-  qrContainer.innerHTML = '';
-  // QR encodes the sessionId so student app can identify the session
+  qrContainer.innerHTML = '<canvas id="qr-canvas"></canvas>';
   const qrData = JSON.stringify({sessionId, type:'attendx-checkin'});
-  qrInstance = new QRCode(qrContainer, {
-    text: qrData,
-    width: 220,
-    height: 220,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
-  });
+  // Use qrcode npm package (QRCode.toCanvas)
+  if(typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+    QRCode.toCanvas(document.getElementById('qr-canvas'), qrData, {width:220, margin:2}, err=>{
+      if(err) showQrFallback(qrContainer, qrData);
+    });
+  } else {
+    showQrFallback(qrContainer, qrData);
+  }
   document.getElementById('qr-modal').classList.remove('hidden');
 };
+
+function showQrFallback(container, data) {
+  // Fallback: show session ID text if QR fails
+  container.innerHTML = `<div style="padding:20px;font-family:monospace;font-size:11px;word-break:break-all;max-width:220px;text-align:center;color:#000">`
+    + `<div style="font-size:14px;font-weight:800;margin-bottom:8px">📱 QR Unavailable</div>`
+    + `<div style="font-size:12px;color:#666">Share the session PIN instead</div></div>`;
+}
 
 window.closeQrModal = () => {
   document.getElementById('qr-modal').classList.add('hidden');
