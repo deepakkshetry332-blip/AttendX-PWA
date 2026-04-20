@@ -1652,7 +1652,17 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-students').textContent = studentsSnap.size;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
-  document.getElementById('a-today-att').textContent = '–%';
+  // Calculate today's attendance percentage
+  try {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+    const todayAttSnap = await getDocs(query(collection(db,'attendance'),
+      where('checkInTime','>=',todayStart),where('checkInTime','<=',todayEnd)));
+    const todayRecords = todayAttSnap.docs.map(d=>d.data());
+    const todayPresent = todayRecords.filter(r=>r.checkIn).length;
+    const todayTotal = todayRecords.length;
+    document.getElementById('a-today-att').textContent = todayTotal > 0 ? Math.round(todayPresent/todayTotal*100)+'%' : '0%';
+  } catch(e) { document.getElementById('a-today-att').textContent = '0%'; }
   const activeSessions = sessionsSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl = document.getElementById('admin-active-sessions');
   aEl.innerHTML = activeSessions.length ? activeSessions.map(s=>`
@@ -1999,8 +2009,9 @@ window.deleteStudent = async (studentId, studentName) => {
       }
     }
     toast(`"${studentName}" removed from all classes ✅`,'success');
-    loadAdminStudents();
-    loadAdminDashboard();
+    // Force immediate UI refresh so the table updates without needing to navigate away
+    await loadAdminStudents();
+    await loadAdminDashboard();
   } catch(e) {
     if(e.code === 'permission-denied') {
       toast('Permission denied. Update your Firestore rules to allow teachers to update user docs.','error');
