@@ -1329,7 +1329,7 @@ window.registerAdmin = async () => {
 };
 
 window.logout = async () => {
-  if(_dashboardRefreshTimer) { clearTimeout(_dashboardRefreshTimer); _dashboardRefreshTimer = null; }
+  stopDashboardListeners();
   await signOut(auth);
   toast('Logged out');
 };
@@ -1677,91 +1677,142 @@ window.submitPin = async () => {
 
 // ===== ADMIN DASHBOARD =====
 let _dashboardRefreshTimer = null;
+let _dashboardListeners = [];
+
+function stopDashboardListeners() {
+  _dashboardListeners.forEach(unsub => { try { unsub(); } catch(e){} });
+  _dashboardListeners = [];
+  if(_dashboardRefreshTimer) { clearTimeout(_dashboardRefreshTimer); _dashboardRefreshTimer = null; }
+}
 
 async function loadAdminDashboard() {
-  // Auto-refresh every 15 seconds so new check-ins appear without manual reload
-  if(_dashboardRefreshTimer) clearTimeout(_dashboardRefreshTimer);
-  _dashboardRefreshTimer = setTimeout(loadAdminDashboard, 15000);
+  stopDashboardListeners();
 
-  const [studentsSnap,classesSnap,sessionsSnap] = await Promise.all([
-    getDocs(query(collection(db,'users'),where('role','==','student'))),
-    getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid))),
-    getDocs(query(collection(db,'sessions'),where('active','==',true),where('adminId','==',currentUser.uid)))
-  ]);
-  // Count only active students enrolled in at least one of this teacher's classes
+  // Get teacher's classes first
+  let classesSnap, sessionsSnap;
+  try {
+    [classesSnap, sessionsSnap] = await Promise.all([
+      getDocs(query(collection(db,'classes'), where('adminId','==',currentUser.uid))),
+      getDocs(query(collection(db,'sessions'), where('active','==',true), where('adminId','==',currentUser.uid)))
+    ]);
+  } catch(e) {
+    console.error('Dashboard load error:', e);
+    return;
+  }
+
   const myClassIds = classesSnap.docs.map(d=>d.id);
-  const myStudentCount = studentsSnap.docs.filter(d=>{
-    const data = d.data();
-    if(data.disabled) return false;
-    return (data.enrolledClasses||[]).some(cid=>myClassIds.includes(cid));
-  }).length;
-  document.getElementById('a-total-students').textContent = myStudentCount;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
-  // Calculate today's attendance percentage - fetch all and filter client-side
+
+  // Count students: query by enrolledClasses array-contains-any (avoids reading all users)
+  let myStudentCount = 0;
+  if(myClassIds.length > 0) {
+    try {
+      // Firestore array-contains-any supports up to 30 items
+      const chunk = myClassIds.slice(0,10);
+      const studentsSnap = await getDocs(query(
+        collection(db,'users'),
+        where('enrolledClasses','array-contains-any', chunk)
+      ));
+      myStudentCount = studentsSnap.docs.filter(d=>!d.data().disabled).length;
+    } catch(e) {
+      // Fallback: try reading all students
+      try {
+        const sSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
+        myStudentCount = sSnap.docs.filter(d => {
+          const data = d.data();
+          return !data.disabled && (data.enrolledClasses||[]).some(cid=>myClassIds.includes(cid));
+        }).length;
+      } catch(e2) { myStudentCount = '–'; }
+    }
+  }
+  document.getElementById('a-total-students').textContent = myStudentCount;
+
+  // Today's attendance %
   try {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
-    const todayAttSnap = await getDocs(query(collection(db,'attendance')));
-    const todayRecords = todayAttSnap.docs.map(d=>d.data()).filter(r=>{
+    const attSnap = await getDocs(query(collection(db,'attendance')));
+    const todayRecords = attSnap.docs.map(d=>d.data()).filter(r=>{
       const t = r.checkInTime?.toDate?.();
       return t && t >= todayStart && t <= todayEnd && myClassIds.includes(r.classId);
     });
-    const todayPresent = todayRecords.filter(r=>r.checkIn).length;
-    const todayTotal = todayRecords.length;
-    document.getElementById('a-today-att').textContent = todayTotal > 0 ? Math.round(todayPresent/todayTotal*100)+'%' : '0%';
-  } catch(e) { document.getElementById('a-today-att').textContent = '0%'; }
+    const pct = todayRecords.length > 0 ? Math.round(todayRecords.filter(r=>r.checkIn).length/todayRecords.length*100)+'%' : '0%';
+    document.getElementById('a-today-att').textContent = pct;
+  } catch(e) { document.getElementById('a-today-att').textContent = '–'; }
 
+  // Active sessions display
   const activeSessions = sessionsSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl = document.getElementById('admin-active-sessions');
   aEl.innerHTML = activeSessions.length ? activeSessions.map(s=>`
-    <div class="session-banner" style="flex-wrap:wrap;gap:10px">
-      <div class="session-pulse"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:800;font-size:16px">${s.className}</div>
-        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:10px">
-          <div style="background:#e0e7ff;border-radius:10px;padding:6px 14px;text-align:center">
-            <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.05em">Check-In PIN</div>
-            <div style="font-size:26px;font-weight:900;font-family:var(--font-mono);color:var(--accent)">${s.checkInPin}</div>
-          </div>
-          <div style="background:#fee2e2;border-radius:10px;padding:6px 14px;text-align:center">
-            <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em">Check-Out PIN</div>
-            <div style="font-size:26px;font-weight:900;font-family:var(--font-mono);color:var(--red)">${s.checkOutPin}</div>
-          </div>
+    <div style="background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:2px solid #a7f3d0;border-radius:16px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 4px rgba(5,150,105,0.2)"></div>
+        <div style="font-weight:800;font-size:17px;color:#065f46">${s.className}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="background:#fff;border-radius:10px;padding:8px 14px;text-align:center;flex:1;min-width:110px">
+          <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase">Check-In PIN</div>
+          <div style="font-size:28px;font-weight:900;font-family:var(--font-mono);color:var(--accent)">${s.checkInPin}</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:8px 14px;text-align:center;flex:1;min-width:110px">
+          <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase">Check-Out PIN</div>
+          <div style="font-size:28px;font-weight:900;font-family:var(--font-mono);color:var(--red)">${s.checkOutPin}</div>
         </div>
       </div>
-      <button class="btn btn-danger btn-sm" style="align-self:flex-start" onclick="endSession('${s.id}')">⏹ End</button>
+      <button class="btn btn-danger btn-sm" style="width:100%" onclick="endSession('${s.id}')">⏹ End Session</button>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
 
-  const recentSnap = await getDocs(query(collection(db,'attendance')));
-  const allRecords = recentSnap.docs;
-  // Load teacher's cleared list from their own user doc
-  const teacherSnap = await getDoc(doc(db,'users',currentUser.uid));
-  const clearedIds = teacherSnap.data()?.clearedAttendanceIds || [];
-  // Only show records for THIS teacher's classes, excluding cleared ones
-  const myRecords = allRecords
-    .filter(d => myClassIds.includes(d.data().classId) && !clearedIds.includes(d.id))
-    .sort((a,b)=>{
-      const ta = a.data().checkInTime?.toDate?.()?.getTime()||0;
-      const tb = b.data().checkInTime?.toDate?.()?.getTime()||0;
-      return tb-ta;
+  // Recent activity — use real-time listener so new check-ins appear instantly
+  try {
+    const teacherSnap = await getDoc(doc(db,'users',currentUser.uid));
+    const clearedIds = teacherSnap.data()?.clearedAttendanceIds || [];
+
+    const unsub = onSnapshot(query(collection(db,'attendance')), snap => {
+      const myRecords = snap.docs
+        .filter(d => myClassIds.includes(d.data().classId) && !clearedIds.includes(d.id))
+        .sort((a,b)=>(b.data().checkInTime?.toDate?.()?.getTime()||0)-(a.data().checkInTime?.toDate?.()?.getTime()||0));
+      const recent = myRecords.slice(0,10).map(d=>({id:d.id,...d.data()}));
+      const rEl = document.getElementById('admin-recent-activity');
+      if(!rEl) return;
+      rEl.innerHTML = recent.length ? `
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn btn-danger btn-sm" onclick="clearAllRecentActivity()">🗑️ Clear All</button>
+        </div>
+        ${recent.map(r=>`
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px">
+          <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:4px">${r.studentName||'–'}</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:2px">📚 ${r.className||'–'}</div>
+          <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px">🕐 ${r.checkInTime?r.checkInTime.toDate().toLocaleString():'–'}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="chip chip-green" style="font-size:11px">✓ CHECKED IN</span>
+            <button style="background:#fee2e2;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;color:var(--red)" onclick="deleteAttendanceRecord('${r.id}')">🗑️</button>
+          </div>
+        </div>`).join('')}` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
+
+      // Also update stats in real-time
+      const todayStart2 = new Date(); todayStart2.setHours(0,0,0,0);
+      const todayEnd2 = new Date(); todayEnd2.setHours(23,59,59,999);
+      const todayRecs = snap.docs.map(d=>d.data()).filter(r=>{
+        const t=r.checkInTime?.toDate?.(); return t && t>=todayStart2 && t<=todayEnd2 && myClassIds.includes(r.classId);
+      });
+      const el = document.getElementById('a-today-att');
+      if(el) el.textContent = todayRecs.length>0 ? Math.round(todayRecs.filter(r=>r.checkIn).length/todayRecs.length*100)+'%' : '0%';
     });
-  const recent = myRecords.slice(0,10).map(d=>({id:d.id,...d.data()}));
-  const rEl = document.getElementById('admin-recent-activity');
-  rEl.innerHTML = recent.length ? `
-  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="btn btn-danger btn-sm" onclick="clearAllRecentActivity()">🗑️ Clear All</button>
-  </div>
-  ${recent.map(r=>`
-  <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-    <div style="flex:1;min-width:0">
-      <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:4px">${r.studentName||'–'}</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:2px">📚 ${r.className||'–'}</div>
-      <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">🕐 ${r.checkInTime?r.checkInTime.toDate().toLocaleString():'–'}</div>
-      <div style="margin-top:6px"><span class="chip chip-green" style="font-size:11px">✓ CHECKED IN</span></div>
-    </div>
-    <button style="flex-shrink:0;background:#fee2e2;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;color:var(--red)" onclick="deleteAttendanceRecord('${r.id}')">🗑️</button>
-  </div>`).join('')}` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
+    _dashboardListeners.push(unsub);
+  } catch(e) { console.error('Listener error:', e); }
+
+  // Also listen for new sessions in real-time
+  try {
+    const sessionUnsub = onSnapshot(
+      query(collection(db,'sessions'), where('active','==',true), where('adminId','==',currentUser.uid)),
+      snap => {
+        const el = document.getElementById('a-active-sessions');
+        if(el) el.textContent = snap.size;
+      }
+    );
+    _dashboardListeners.push(sessionUnsub);
+  } catch(e) {}
 }
 
 // ===== ADMIN CLASSES =====
@@ -2110,10 +2161,16 @@ window.downloadSessionCSV = className => {
 // ===== ADMIN STUDENTS =====
 async function loadAdminStudents(showRemoved = false) {
   const el = document.getElementById('admin-students-table');
-  el.innerHTML = '<div class="empty-state"><span class="icon">⏳</span>Loading...</div>';
+  el.innerHTML = '<div class="empty-state"><span class="icon">⏳</span>Loading students...</div>';
 
   // Get this teacher's classes
-  const classesSnap = await getDocs(query(collection(db,'classes'), where('adminId','==',currentUser.uid)));
+  let classesSnap;
+  try {
+    classesSnap = await getDocs(query(collection(db,'classes'), where('adminId','==',currentUser.uid)));
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><span class="icon">⚠️</span>Could not load classes.</div>';
+    return;
+  }
   const myClasses = classesSnap.docs.map(d=>({id:d.id,...d.data()}));
 
   if(!myClasses.length) {
@@ -2121,13 +2178,35 @@ async function loadAdminStudents(showRemoved = false) {
     return;
   }
 
-  // Get all students from Firestore
-  const studentsSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
-  const allStudents = studentsSnap.docs.map(d=>({id:d.id,...d.data()}));
-
-  // Filter by student's OWN enrolledClasses field (students write this themselves on self-enroll)
   const myClassIds = myClasses.map(c=>c.id);
-  const enrolled = allStudents.filter(s => (s.enrolledClasses||[]).some(cid => myClassIds.includes(cid)));
+
+  // Use array-contains-any to find students enrolled in teacher's classes
+  // This query is allowed by Firestore rules since we're authenticated
+  let enrolled = [];
+  try {
+    // array-contains-any supports max 10 values per query
+    const chunks = [];
+    for(let i=0; i<myClassIds.length; i+=10) chunks.push(myClassIds.slice(i,i+10));
+    const results = await Promise.all(chunks.map(chunk =>
+      getDocs(query(collection(db,'users'), where('enrolledClasses','array-contains-any', chunk)))
+    ));
+    const seen = new Set();
+    results.forEach(snap => snap.docs.forEach(d => {
+      if(!seen.has(d.id)) { seen.add(d.id); enrolled.push({id:d.id,...d.data()}); }
+    }));
+  } catch(e) {
+    // Fallback: try reading all students (requires permissive rules)
+    try {
+      const sSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
+      enrolled = sSnap.docs
+        .map(d=>({id:d.id,...d.data()}))
+        .filter(s => (s.enrolledClasses||[]).some(cid=>myClassIds.includes(cid)));
+    } catch(e2) {
+      el.innerHTML = '<div class="empty-state"><span class="icon">⚠️</span>Could not load students. Check Firestore rules allow authenticated reads on users collection.</div>';
+      return;
+    }
+  }
+
   const active = enrolled.filter(s=>!s.disabled);
   const disabled = enrolled.filter(s=>s.disabled);
   const displayed = showRemoved ? [...active,...disabled] : active;
@@ -2138,7 +2217,7 @@ async function loadAdminStudents(showRemoved = false) {
   </div>`;
 
   if(!displayed.length) {
-    el.innerHTML = toggleBtn + '<div class="empty-state"><span class="icon">👥</span>No students enrolled in your classes yet.</div>';
+    el.innerHTML = toggleBtn + '<div class="empty-state"><span class="icon">👥</span>No students enrolled yet. Share your class join code with students.</div>';
     return;
   }
 
@@ -2156,10 +2235,10 @@ async function loadAdminStudents(showRemoved = false) {
           : `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">🗑️ Remove</button>`
         }
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;flex-direction:column;gap:5px">
         <div style="font-size:13px;color:var(--muted)">📞 ${s.phone||'–'}</div>
         <div style="font-size:13px;color:var(--muted);word-break:break-all">✉️ ${s.email||'–'}</div>
-        <div style="font-size:13px;color:var(--accent);font-weight:600;margin-top:4px">📚 ${classNames}</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:4px">📚 ${classNames}</div>
       </div>
     </div>`;
   }).join('');
