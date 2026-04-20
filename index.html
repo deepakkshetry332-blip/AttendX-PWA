@@ -1531,15 +1531,7 @@ async function loadStudentAttendance() {
   </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><span class="icon">📋</span>No records yet</div>';
 }
 
-window.deleteAttendanceRecord = async (id) => {
-  if(!confirm('Delete this attendance record?')) return;
-  try {
-    await deleteDoc(doc(db,'attendance',id));
-    toast('Record deleted','success');
-    loadStudentAttendance();
-    loadStudentDashboard();
-  } catch(e) { toast(e.message,'error'); }
-};
+
 
 window.downloadStudentReport = async fmt => {
   toast('Preparing download...','info');
@@ -2062,17 +2054,12 @@ window.endSession = async sessionId => {
 };
 
 window.deleteAttendanceRecord = async (recordId) => {
-  if(!confirm('Remove this record from your dashboard?')) return;
+  if(!confirm('Delete this attendance record permanently?')) return;
   try {
-    // Store cleared IDs in teacher's own user doc — no permission issues
-    const teacherRef = doc(db,'users',currentUser.uid);
-    const teacherSnap = await getDoc(teacherRef);
-    const existing = teacherSnap.data()?.clearedAttendanceIds || [];
-    if(!existing.includes(recordId)) {
-      await updateDoc(teacherRef, { clearedAttendanceIds: [...existing, recordId] });
-    }
-    toast('Record hidden from dashboard ✅','success');
-    loadAdminDashboard();
+    await deleteDoc(doc(db,'attendance',recordId));
+    toast('Record deleted ✅','success');
+    loadStudentAttendance();
+    loadStudentDashboard();
   } catch(e) {
     toast('Error: ' + e.message, 'error');
   }
