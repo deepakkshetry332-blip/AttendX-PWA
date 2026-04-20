@@ -34,7 +34,7 @@ html.dark-init{background:#0f1117;color:#e8eaf6}
   --font-main: 'Plus Jakarta Sans', sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-height:100vh;overflow-x:hidden;font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-height:100vh;overflow-x:hidden;font-size:16px;max-width:100vw;}
 
 /* LAYOUT */
 .hidden{display:none!important}
@@ -703,7 +703,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 
 <!-- MAIN APP -->
 
-<div id="main-app" class="hidden" style="background:var(--bg);min-height:100vh;">
+<div id="main-app" class="hidden" style="background:var(--bg);min-height:100vh;overflow-x:hidden;max-width:100vw;">
   <div class="top-bar">
     <div class="top-logo">AttendX</div>
     <div class="top-user">
@@ -971,7 +971,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 
   <div class="panel" id="panel-students">
     <div class="card">
-      <div class="card-title"><div class="icon">👥</div>All Students</div>
+      <div class="card-title"><div class="icon">👥</div>Enrolled Students</div>
       <div id="admin-students-table"><div class="empty-state"><span class="icon">👥</span>No students yet</div></div>
     </div>
   </div>
@@ -1337,6 +1337,8 @@ window.showPanel = (panelId, navId) => {
   document.getElementById(`panel-${panelId}`).classList.add('active');
   document.querySelectorAll(`#${navId} .nav-tab`).forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
+  if(panelId==='admin-dashboard') loadAdminDashboard();
+  if(panelId==='dashboard') { loadStudentDashboard(); loadStudentAttendance(); }
   if(panelId==='sessions') loadAdminSessions();
   if(panelId==='manage-classes') loadAdminClasses();
   if(panelId==='students') loadAdminStudents();
@@ -1719,7 +1721,7 @@ async function loadAdminDashboard() {
   // Only show records for THIS teacher's classes
   const myTeacherClassIds = (await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)))).docs.map(d=>d.id);
   const myRecords = allRecords
-    .filter(d=>!oldRecords.find(o=>o.id===d.id) && myTeacherClassIds.includes(d.data().classId))
+    .filter(d=>!oldRecords.find(o=>o.id===d.id) && myTeacherClassIds.includes(d.data().classId) && !d.data().clearedFromDashboard)
     .sort((a,b)=>{
       const ta = a.data().checkInTime?.toDate?.()?.getTime()||0;
       const tb = b.data().checkInTime?.toDate?.()?.getTime()||0;
@@ -1978,28 +1980,36 @@ window.endSession = async sessionId => {
 };
 
 window.deleteAttendanceRecord = async (recordId) => {
-  if(!confirm('Delete this attendance record?')) return;
+  if(!confirm('Remove this record from dashboard?')) return;
   try {
-    await deleteDoc(doc(db,'attendance',recordId));
-    toast('Record deleted','success');
+    // Mark as cleared instead of deleting (teachers may not have delete permission on student records)
+    await updateDoc(doc(db,'attendance',recordId), { clearedFromDashboard: true });
+    toast('Record removed from dashboard ✅','success');
     loadAdminDashboard();
   } catch(e) {
-    toast('Failed to delete: ' + (e.code==='permission-denied' ? 'Permission denied. Check Firestore rules.' : e.message), 'error');
+    // Fallback: try actual delete
+    try {
+      await deleteDoc(doc(db,'attendance',recordId));
+      toast('Record deleted ✅','success');
+      loadAdminDashboard();
+    } catch(e2) {
+      toast('Permission denied. Update Firestore rules to allow teachers to delete attendance.','error');
+    }
   }
 };
 
 window.clearAllRecentActivity = async () => {
-  if(!confirm('Clear all recent activity records? This cannot be undone.')) return;
+  if(!confirm('Clear all recent activity from dashboard? This cannot be undone.')) return;
   try {
-    // Only clear records belonging to this teacher's classes
     const myClassIds = (await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)))).docs.map(d=>d.id);
     const snap = await getDocs(query(collection(db,'attendance')));
-    const toDelete = snap.docs.filter(d=>myClassIds.includes(d.data().classId));
-    await Promise.all(toDelete.map(d=>deleteDoc(doc(db,'attendance',d.id))));
+    const toMark = snap.docs.filter(d => myClassIds.includes(d.data().classId) && !d.data().clearedFromDashboard);
+    // Try marking as cleared first (works even without delete permission)
+    await Promise.all(toMark.map(d => updateDoc(doc(db,'attendance',d.id), { clearedFromDashboard: true })));
     toast('Recent activity cleared ✅','success');
     loadAdminDashboard();
   } catch(e) {
-    toast('Failed to clear: ' + (e.code==='permission-denied' ? 'Permission denied. Check Firestore rules.' : e.message), 'error');
+    toast('Failed to clear: ' + e.message, 'error');
   }
 };
 
@@ -2067,34 +2077,57 @@ window.downloadSessionCSV = className => {
 
 // ===== ADMIN STUDENTS =====
 async function loadAdminStudents(showRemoved = false) {
-  const snap=await getDocs(query(collection(db,'users'),where('role','==','student')));
-  const students=snap.docs.map(d=>({id:d.id,...d.data()}));
-  const active = students.filter(s=>!s.disabled);
-  const disabled = students.filter(s=>s.disabled);
-  const displayed = showRemoved ? [...active, ...disabled] : active;
-  const el=document.getElementById('admin-students-table');
-  const toggleBtn = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-    <div style="font-size:13px;color:var(--muted);font-weight:600">${active.length} active student${active.length!==1?'s':''}${disabled.length?` · ${disabled.length} removed`:''}
-    </div>
-    ${disabled.length?`<button class="btn btn-secondary btn-sm" onclick="loadAdminStudents(${!showRemoved})">${showRemoved?'Hide Removed':'Show Removed'}</button>`:''}
-  </div>`;
-  if(!displayed.length){
-    el.innerHTML=toggleBtn+'<div class="empty-state"><span class="icon">👥</span>No students yet</div>';
+  const el = document.getElementById('admin-students-table');
+  el.innerHTML = '<div class="empty-state"><span class="icon">⏳</span>Loading...</div>';
+
+  // Get this teacher's classes
+  const classesSnap = await getDocs(query(collection(db,'classes'), where('adminId','==',currentUser.uid)));
+  const myClasses = classesSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+  if(!myClasses.length) {
+    el.innerHTML = '<div class="empty-state"><span class="icon">📚</span>No classes created yet. Create a class first.</div>';
     return;
   }
-  el.innerHTML=toggleBtn+`<div class="table-scroll-wrap"><table class="data-table">
-  <thead><tr><th>Name</th><th>ID</th><th>Phone</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
-  ${displayed.map(s=>`<tr style="${s.disabled?'opacity:0.45':''}">
-    <td style="font-weight:700;min-width:100px">${s.name||'–'}${s.disabled?' <span class="chip chip-red" style="font-size:10px;padding:2px 8px">Removed</span>':''}</td>
-    <td style="font-family:var(--font-mono);min-width:80px">${s.studentId||'–'}</td>
-    <td style="font-family:var(--font-mono);font-size:13px;min-width:100px">${s.phone||'–'}</td>
-    <td style="min-width:120px;font-size:13px">${s.email||'–'}</td>
-    <td>${(s.enrolledClasses||[]).length}</td>
-    <td style="min-width:100px">${s.disabled
-      ? `<button class="btn btn-green btn-sm" onclick="restoreStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">♻️ Restore</button>`
-      : `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">🗑️ Remove</button>`
-    }</td>
-  </tr>`).join('')}
+
+  // Get all students from Firestore
+  const studentsSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
+  const allStudents = studentsSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+  // Filter: only students enrolled in at least one of this teacher's classes
+  const myClassIds = myClasses.map(c=>c.id);
+  const enrolled = allStudents.filter(s => (s.enrolledClasses||[]).some(cid => myClassIds.includes(cid)));
+  const active = enrolled.filter(s=>!s.disabled);
+  const disabled = enrolled.filter(s=>s.disabled);
+  const displayed = showRemoved ? [...active,...disabled] : active;
+
+  const toggleBtn = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:13px;color:var(--muted);font-weight:600">${active.length} enrolled student${active.length!==1?'s':''}${disabled.length?` · ${disabled.length} removed`:''}</div>
+    ${disabled.length?`<button class="btn btn-secondary btn-sm" onclick="loadAdminStudents(${!showRemoved})">${showRemoved?'Hide Removed':'Show Removed'}</button>`:''}
+  </div>`;
+
+  if(!displayed.length) {
+    el.innerHTML = toggleBtn + '<div class="empty-state"><span class="icon">👥</span>No students enrolled in your classes yet.</div>';
+    return;
+  }
+
+  el.innerHTML = toggleBtn + `<div class="table-scroll-wrap"><table class="data-table">
+  <thead><tr><th>Name</th><th>Reg. No.</th><th>Phone</th><th>Email</th><th>Enrolled Classes</th><th>Action</th></tr></thead><tbody>
+  ${displayed.map(s=>{
+    // Which of this teacher's classes is the student enrolled in?
+    const studentMyClasses = myClasses.filter(c=>(s.enrolledClasses||[]).includes(c.id));
+    const classNames = studentMyClasses.map(c=>c.name).join(', ') || '–';
+    return `<tr style="${s.disabled?'opacity:0.5':''}">
+      <td style="font-weight:700;min-width:110px">${s.name||'–'}${s.disabled?'<br><span class="chip chip-red" style="font-size:10px;padding:2px 8px;margin-top:4px">Removed</span>':''}</td>
+      <td style="font-family:var(--font-mono);font-size:13px;min-width:90px">${s.studentId||'–'}</td>
+      <td style="font-family:var(--font-mono);font-size:13px;min-width:100px">${s.phone||'–'}</td>
+      <td style="font-size:13px;min-width:130px">${s.email||'–'}</td>
+      <td style="font-size:13px;min-width:120px;color:var(--accent);font-weight:600">${classNames}</td>
+      <td style="min-width:100px">${s.disabled
+        ? `<button class="btn btn-green btn-sm" onclick="restoreStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">♻️ Restore</button>`
+        : `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">🗑️ Remove</button>`
+      }</td>
+    </tr>`;
+  }).join('')}
   </tbody></table></div>`;
 }
 
