@@ -1328,7 +1328,11 @@ window.registerAdmin = async () => {
   } catch(e) { toast(e.message,'error'); }
 };
 
-window.logout = async () => { await signOut(auth); toast('Logged out'); };
+window.logout = async () => {
+  if(_dashboardRefreshTimer) { clearTimeout(_dashboardRefreshTimer); _dashboardRefreshTimer = null; }
+  await signOut(auth);
+  toast('Logged out');
+};
 
 // ===== NAVIGATION =====
 window.showPanel = (panelId, navId) => {
@@ -1423,7 +1427,13 @@ window.joinClassWithCode = async () => {
   }
 };
 
+let _studentDashRefreshTimer = null;
+
 async function loadStudentDashboard() {
+  // Auto-refresh every 15 seconds so dashboard stays current
+  if(_studentDashRefreshTimer) clearTimeout(_studentDashRefreshTimer);
+  _studentDashRefreshTimer = setTimeout(loadStudentDashboard, 15000);
+
   // Always re-fetch from Firestore so enrolled classes are current
   try {
     const freshSnap = await getDoc(doc(db,'users',currentUser.uid));
@@ -1666,7 +1676,13 @@ window.submitPin = async () => {
 };
 
 // ===== ADMIN DASHBOARD =====
+let _dashboardRefreshTimer = null;
+
 async function loadAdminDashboard() {
+  // Auto-refresh every 15 seconds so new check-ins appear without manual reload
+  if(_dashboardRefreshTimer) clearTimeout(_dashboardRefreshTimer);
+  _dashboardRefreshTimer = setTimeout(loadAdminDashboard, 15000);
+
   const [studentsSnap,classesSnap,sessionsSnap] = await Promise.all([
     getDocs(query(collection(db,'users'),where('role','==','student'))),
     getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid))),
@@ -1683,65 +1699,69 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
   // Calculate today's attendance percentage - fetch all and filter client-side
-  // to avoid Firestore composite index requirement on checkInTime range queries
   try {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
     const todayAttSnap = await getDocs(query(collection(db,'attendance')));
     const todayRecords = todayAttSnap.docs.map(d=>d.data()).filter(r=>{
       const t = r.checkInTime?.toDate?.();
-      return t && t >= todayStart && t <= todayEnd;
+      return t && t >= todayStart && t <= todayEnd && myClassIds.includes(r.classId);
     });
     const todayPresent = todayRecords.filter(r=>r.checkIn).length;
     const todayTotal = todayRecords.length;
     document.getElementById('a-today-att').textContent = todayTotal > 0 ? Math.round(todayPresent/todayTotal*100)+'%' : '0%';
   } catch(e) { document.getElementById('a-today-att').textContent = '0%'; }
+
   const activeSessions = sessionsSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl = document.getElementById('admin-active-sessions');
   aEl.innerHTML = activeSessions.length ? activeSessions.map(s=>`
-    <div class="session-banner">
+    <div class="session-banner" style="flex-wrap:wrap;gap:10px">
       <div class="session-pulse"></div>
-      <div style="flex:1">
+      <div style="flex:1;min-width:0">
         <div style="font-weight:800;font-size:16px">${s.className}</div>
-        <div style="font-size:14px;margin-top:4px">
-          🔵 Check-In: <strong style="color:var(--accent);font-size:20px">${s.checkInPin}</strong> &nbsp;|&nbsp;
-          🔴 Check-Out: <strong style="color:var(--red);font-size:20px">${s.checkOutPin}</strong>
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:10px">
+          <div style="background:#e0e7ff;border-radius:10px;padding:6px 14px;text-align:center">
+            <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.05em">Check-In PIN</div>
+            <div style="font-size:26px;font-weight:900;font-family:var(--font-mono);color:var(--accent)">${s.checkInPin}</div>
+          </div>
+          <div style="background:#fee2e2;border-radius:10px;padding:6px 14px;text-align:center">
+            <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em">Check-Out PIN</div>
+            <div style="font-size:26px;font-weight:900;font-family:var(--font-mono);color:var(--red)">${s.checkOutPin}</div>
+          </div>
         </div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="endSession('${s.id}')">End</button>
+      <button class="btn btn-danger btn-sm" style="align-self:flex-start" onclick="endSession('${s.id}')">⏹ End</button>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
+
   const recentSnap = await getDocs(query(collection(db,'attendance')));
   const allRecords = recentSnap.docs;
-  // Auto-delete attendance records older than 7 days (only for this teacher's classes)
-  const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000);
-  const oldRecords = allRecords.filter(d=>{ const t=d.data().checkInTime?.toDate?.(); return t && t < sevenDaysAgo; });
-  if(oldRecords.length) {
-    try { await Promise.all(oldRecords.map(d=>deleteDoc(doc(db,'attendance',d.id)))); } catch(e){}
-  }
-  // Only show records for THIS teacher's classes
-  const myTeacherClassIds = (await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)))).docs.map(d=>d.id);
+  // Load teacher's cleared list from their own user doc
+  const teacherSnap = await getDoc(doc(db,'users',currentUser.uid));
+  const clearedIds = teacherSnap.data()?.clearedAttendanceIds || [];
+  // Only show records for THIS teacher's classes, excluding cleared ones
   const myRecords = allRecords
-    .filter(d=>!oldRecords.find(o=>o.id===d.id) && myTeacherClassIds.includes(d.data().classId) && !d.data().clearedFromDashboard)
+    .filter(d => myClassIds.includes(d.data().classId) && !clearedIds.includes(d.id))
     .sort((a,b)=>{
       const ta = a.data().checkInTime?.toDate?.()?.getTime()||0;
       const tb = b.data().checkInTime?.toDate?.()?.getTime()||0;
       return tb-ta;
     });
-  const recent = myRecords.slice(0,8).map(d=>({id:d.id,...d.data()}));
+  const recent = myRecords.slice(0,10).map(d=>({id:d.id,...d.data()}));
   const rEl = document.getElementById('admin-recent-activity');
   rEl.innerHTML = recent.length ? `
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
     <button class="btn btn-danger btn-sm" onclick="clearAllRecentActivity()">🗑️ Clear All</button>
   </div>
-  <table class="data-table"><thead><tr><th>Student</th><th>Class</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
-  ${recent.map(r=>`<tr>
-    <td style="font-weight:700">${r.studentName||'–'}</td>
-    <td>${r.className||'–'}</td>
-    <td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td>
-    <td><span class="chip chip-green">CHECKED IN</span></td>
-    <td><button class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:12px" onclick="deleteAttendanceRecord('${r.id}')">🗑️</button></td>
-  </tr>`).join('')}
-  </tbody></table>` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
+  ${recent.map(r=>`
+  <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:4px">${r.studentName||'–'}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:2px">📚 ${r.className||'–'}</div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">🕐 ${r.checkInTime?r.checkInTime.toDate().toLocaleString():'–'}</div>
+      <div style="margin-top:6px"><span class="chip chip-green" style="font-size:11px">✓ CHECKED IN</span></div>
+    </div>
+    <button style="flex-shrink:0;background:#fee2e2;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;color:var(--red)" onclick="deleteAttendanceRecord('${r.id}')">🗑️</button>
+  </div>`).join('')}` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
 }
 
 // ===== ADMIN CLASSES =====
@@ -1947,30 +1967,39 @@ async function loadAdminSessions() {
   const pastSessions=pastSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl=document.getElementById('active-sessions-admin');
   aEl.innerHTML=activeSessions.length?activeSessions.map(s=>`
-    <div class="session-banner" style="margin-bottom:12px">
-      <div class="session-pulse"></div>
-      <div style="flex:1">
-        <div style="font-weight:800;font-size:17px">${s.className}</div>
-        <div style="font-size:15px;margin-top:6px">
-          🔵 Check-In: <strong style="color:var(--accent);font-size:22px;font-family:var(--font-mono)">${s.checkInPin}</strong>
-          &nbsp;|&nbsp;
-          🔴 Check-Out: <strong style="color:var(--red);font-size:22px;font-family:var(--font-mono)">${s.checkOutPin}</strong>
-        </div>
-        <div style="font-size:13px;color:var(--muted);font-weight:600">📍 Radius: ${s.radius}m</div>
+    <div style="background:linear-gradient(135deg,#d1fae5,#e0f2fe);border:2px solid #a7f3d0;border-radius:16px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 4px rgba(5,150,105,0.2)"></div>
+        <div style="font-weight:800;font-size:17px;color:#065f46">${s.className}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="viewSessionAttendance('${s.id}')">👁 View</button>
-        <button class="btn btn-danger btn-sm" onclick="endSession('${s.id}')">⏹ End</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="background:#fff;border-radius:10px;padding:8px 14px;text-align:center;flex:1;min-width:100px">
+          <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.05em">Check-In PIN</div>
+          <div style="font-size:28px;font-weight:900;font-family:var(--font-mono);color:var(--accent)">${s.checkInPin}</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:8px 14px;text-align:center;flex:1;min-width:100px">
+          <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em">Check-Out PIN</div>
+          <div style="font-size:28px;font-weight:900;font-family:var(--font-mono);color:var(--red)">${s.checkOutPin}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#065f46;font-weight:600;margin-bottom:10px">📍 Radius: ${s.radius}m</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" style="flex:1" onclick="viewSessionAttendance('${s.id}')">👁 View Attendance</button>
+        <button class="btn btn-danger btn-sm" style="flex:1" onclick="endSession('${s.id}')">⏹ End Session</button>
       </div>
     </div>`).join(''):'<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
+
   const pEl=document.getElementById('past-sessions-admin');
-  pEl.innerHTML=pastSessions.length?`<table class="data-table"><thead><tr><th>Class</th><th>Start</th><th>End</th><th>Actions</th></tr></thead><tbody>
-  ${pastSessions.map(s=>`<tr><td style="font-weight:700">${s.className}</td><td>${fmtDate(s.startTime)}</td><td>${fmtDate(s.endTime)}</td>
-  <td style="display:flex;gap:6px">
-    <button class="btn btn-secondary btn-sm" onclick="viewSessionAttendance('${s.id}')">👁 View</button>
-    <button class="btn btn-danger btn-sm" onclick="deletePastSession('${s.id}')">🗑️</button>
-  </td></tr>`).join('')}
-  </tbody></table>`:'<div class="empty-state"><span class="icon">📜</span>No past sessions</div>';
+  pEl.innerHTML=pastSessions.length?pastSessions.map(s=>`
+    <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:6px">${s.className}</div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-bottom:2px">▶ Started: ${fmtDate(s.startTime)}</div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-bottom:10px">⏹ Ended: ${fmtDate(s.endTime)}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" style="flex:1" onclick="viewSessionAttendance('${s.id}')">👁 View</button>
+        <button class="btn btn-danger btn-sm" style="flex:1" onclick="deletePastSession('${s.id}')">🗑️ Delete</button>
+      </div>
+    </div>`).join(''):'<div class="empty-state"><span class="icon">📜</span>No past sessions</div>';
 }
 
 window.endSession = async sessionId => {
@@ -1980,36 +2009,39 @@ window.endSession = async sessionId => {
 };
 
 window.deleteAttendanceRecord = async (recordId) => {
-  if(!confirm('Remove this record from dashboard?')) return;
+  if(!confirm('Remove this record from your dashboard?')) return;
   try {
-    // Mark as cleared instead of deleting (teachers may not have delete permission on student records)
-    await updateDoc(doc(db,'attendance',recordId), { clearedFromDashboard: true });
-    toast('Record removed from dashboard ✅','success');
+    // Store cleared IDs in teacher's own user doc — no permission issues
+    const teacherRef = doc(db,'users',currentUser.uid);
+    const teacherSnap = await getDoc(teacherRef);
+    const existing = teacherSnap.data()?.clearedAttendanceIds || [];
+    if(!existing.includes(recordId)) {
+      await updateDoc(teacherRef, { clearedAttendanceIds: [...existing, recordId] });
+    }
+    toast('Record hidden from dashboard ✅','success');
     loadAdminDashboard();
   } catch(e) {
-    // Fallback: try actual delete
-    try {
-      await deleteDoc(doc(db,'attendance',recordId));
-      toast('Record deleted ✅','success');
-      loadAdminDashboard();
-    } catch(e2) {
-      toast('Permission denied. Update Firestore rules to allow teachers to delete attendance.','error');
-    }
+    toast('Error: ' + e.message, 'error');
   }
 };
 
 window.clearAllRecentActivity = async () => {
-  if(!confirm('Clear all recent activity from dashboard? This cannot be undone.')) return;
+  if(!confirm('Clear all recent activity from your dashboard?')) return;
   try {
+    // Get IDs of all attendance records for this teacher's classes
     const myClassIds = (await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)))).docs.map(d=>d.id);
     const snap = await getDocs(query(collection(db,'attendance')));
-    const toMark = snap.docs.filter(d => myClassIds.includes(d.data().classId) && !d.data().clearedFromDashboard);
-    // Try marking as cleared first (works even without delete permission)
-    await Promise.all(toMark.map(d => updateDoc(doc(db,'attendance',d.id), { clearedFromDashboard: true })));
-    toast('Recent activity cleared ✅','success');
+    const ids = snap.docs.filter(d => myClassIds.includes(d.data().classId)).map(d=>d.id);
+    // Save them to teacher's own user doc — always writable
+    const teacherRef = doc(db,'users',currentUser.uid);
+    const teacherSnap = await getDoc(teacherRef);
+    const existing = teacherSnap.data()?.clearedAttendanceIds || [];
+    const merged = [...new Set([...existing, ...ids])];
+    await updateDoc(teacherRef, { clearedAttendanceIds: merged });
+    toast('All recent activity cleared ✅','success');
     loadAdminDashboard();
   } catch(e) {
-    toast('Failed to clear: ' + e.message, 'error');
+    toast('Failed: ' + e.message, 'error');
   }
 };
 
@@ -2093,7 +2125,7 @@ async function loadAdminStudents(showRemoved = false) {
   const studentsSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
   const allStudents = studentsSnap.docs.map(d=>({id:d.id,...d.data()}));
 
-  // Filter: only students enrolled in at least one of this teacher's classes
+  // Filter by student's OWN enrolledClasses field (students write this themselves on self-enroll)
   const myClassIds = myClasses.map(c=>c.id);
   const enrolled = allStudents.filter(s => (s.enrolledClasses||[]).some(cid => myClassIds.includes(cid)));
   const active = enrolled.filter(s=>!s.disabled);
@@ -2110,25 +2142,27 @@ async function loadAdminStudents(showRemoved = false) {
     return;
   }
 
-  el.innerHTML = toggleBtn + `<div class="table-scroll-wrap"><table class="data-table">
-  <thead><tr><th>Name</th><th>Reg. No.</th><th>Phone</th><th>Email</th><th>Enrolled Classes</th><th>Action</th></tr></thead><tbody>
-  ${displayed.map(s=>{
-    // Which of this teacher's classes is the student enrolled in?
+  el.innerHTML = toggleBtn + displayed.map(s=>{
     const studentMyClasses = myClasses.filter(c=>(s.enrolledClasses||[]).includes(c.id));
     const classNames = studentMyClasses.map(c=>c.name).join(', ') || '–';
-    return `<tr style="${s.disabled?'opacity:0.5':''}">
-      <td style="font-weight:700;min-width:110px">${s.name||'–'}${s.disabled?'<br><span class="chip chip-red" style="font-size:10px;padding:2px 8px;margin-top:4px">Removed</span>':''}</td>
-      <td style="font-family:var(--font-mono);font-size:13px;min-width:90px">${s.studentId||'–'}</td>
-      <td style="font-family:var(--font-mono);font-size:13px;min-width:100px">${s.phone||'–'}</td>
-      <td style="font-size:13px;min-width:130px">${s.email||'–'}</td>
-      <td style="font-size:13px;min-width:120px;color:var(--accent);font-weight:600">${classNames}</td>
-      <td style="min-width:100px">${s.disabled
-        ? `<button class="btn btn-green btn-sm" onclick="restoreStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">♻️ Restore</button>`
-        : `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">🗑️ Remove</button>`
-      }</td>
-    </tr>`;
-  }).join('')}
-  </tbody></table></div>`;
+    return `<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;${s.disabled?'opacity:0.55':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <div>
+          <div style="font-weight:800;font-size:16px;color:var(--text)">${s.name||'–'}${s.disabled?' <span class="chip chip-red" style="font-size:10px;padding:2px 8px;margin-left:6px">Removed</span>':''}</div>
+          <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-top:2px">Reg: ${s.studentId||'–'}</div>
+        </div>
+        ${s.disabled
+          ? `<button class="btn btn-green btn-sm" onclick="restoreStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">♻️ Restore</button>`
+          : `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">🗑️ Remove</button>`
+        }
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:13px;color:var(--muted)">📞 ${s.phone||'–'}</div>
+        <div style="font-size:13px;color:var(--muted);word-break:break-all">✉️ ${s.email||'–'}</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:600;margin-top:4px">📚 ${classNames}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 window.restoreStudent = async (studentId, studentName) => {
