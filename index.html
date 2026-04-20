@@ -1520,15 +1520,26 @@ async function loadStudentAttendance() {
   window._studentAttRecords = records;
   const el = document.getElementById('student-attendance-table');
   el.innerHTML = records.length ? `<div class="table-scroll-wrap"><table class="data-table"><thead><tr>
-    <th>Class</th><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th>
+    <th>Class</th><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th></th>
   </tr></thead><tbody>${records.map(r=>`<tr>
     <td style="font-weight:700">${r.className||'–'}</td>
     <td>${r.checkInTime?r.checkInTime.toDate().toLocaleDateString():'–'}</td>
     <td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td>
     <td>${r.checkOutTime?r.checkOutTime.toDate().toLocaleTimeString():'Not out yet'}</td>
     <td><span class="chip ${r.checkIn?'chip-green':'chip-red'}">${r.checkIn?'PRESENT':'ABSENT'}</span></td>
-  </tr>`).join('')}</tbody></table>` : '<div class="empty-state"><span class="icon">📋</span>No records yet</div>';
+    <td><button onclick="deleteAttendanceRecord('${r.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--red)" title="Delete">🗑</button></td>
+  </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><span class="icon">📋</span>No records yet</div>';
 }
+
+window.deleteAttendanceRecord = async (id) => {
+  if(!confirm('Delete this attendance record?')) return;
+  try {
+    await deleteDoc(doc(db,'attendance',id));
+    toast('Record deleted','success');
+    loadStudentAttendance();
+    loadStudentDashboard();
+  } catch(e) { toast(e.message,'error'); }
+};
 
 window.downloadStudentReport = async fmt => {
   toast('Preparing download...','info');
