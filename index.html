@@ -2217,7 +2217,9 @@ async function loadAdminStudents(showRemoved = false) {
   </div>`;
 
   if(!displayed.length) {
-    el.innerHTML = toggleBtn + '<div class="empty-state"><span class="icon">👥</span>No students enrolled yet. Share your class join code with students.</div>';
+    el.innerHTML = toggleBtn + (disabled.length && !showRemoved
+      ? `<div class="empty-state"><span class="icon">👥</span>No active students. You have ${disabled.length} removed student${disabled.length>1?'s':''}.<br><br><button class="btn btn-secondary btn-sm" onclick="loadAdminStudents(true)" style="margin-top:8px">👁 Show Removed Students</button></div>`
+      : '<div class="empty-state"><span class="icon">👥</span>No students enrolled yet. Share your class join code with students.</div>');
     return;
   }
 
@@ -2245,11 +2247,28 @@ async function loadAdminStudents(showRemoved = false) {
 }
 
 window.restoreStudent = async (studentId, studentName) => {
-  if(!confirm(`Restore "${studentName}"?\n\nThey will be able to log in again but won't be enrolled in any classes yet.`)) return;
+  if(!confirm(`Restore "${studentName}"?\n\nThey will be re-enrolled in your classes and can log in again.`)) return;
   try {
-    await updateDoc(doc(db,'users',studentId),{disabled:false,disabledAt:null,disabledBy:null});
-    toast(`"${studentName}" restored ✅`,'success');
-    await loadAdminStudents(true);
+    // Get teacher's class IDs
+    const classesSnap = await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)));
+    const myClassIds = classesSnap.docs.map(d=>d.id);
+    // Re-enroll student in teacher's classes
+    await updateDoc(doc(db,'users',studentId),{
+      disabled:false, disabledAt:null, disabledBy:null,
+      enrolledClasses: myClassIds
+    });
+    // Also add student back to enrolledStudents on each class
+    for(const classDoc of classesSnap.docs) {
+      const data = classDoc.data();
+      const enrolled = data.enrolledStudents||[];
+      if(!enrolled.includes(studentId)) {
+        await updateDoc(doc(db,'classes',classDoc.id),{
+          enrolledStudents:[...enrolled, studentId]
+        });
+      }
+    }
+    toast(`"${studentName}" restored and re-enrolled ✅`,'success');
+    await loadAdminStudents();
     await loadAdminDashboard();
   } catch(e) { toast(e.message,'error'); }
 };
