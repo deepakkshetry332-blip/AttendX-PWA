@@ -126,7 +126,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
 .stat-card{background:var(–surface);border:2px solid var(–border);border-radius:18px;padding:24px;text-align:center;box-shadow:var(–shadow)}
-.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);color:var(–accent)}
+.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);color:var(–accent);-webkit-text-fill-color:var(–accent)}
 .stat-label{font-size:12px;color:var(–muted);margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
 /* ATTENDANCE CIRCLE */
@@ -357,10 +357,8 @@ body.dark .pin-btn:active { background: #4f46e5; color: #fff; border-color: #4f4
 body.dark .pin-btn-sub { color: var(–muted); }
 
 body.dark .stat-num {
-background: linear-gradient(135deg,#818cf8,#a78bfa);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-background-clip: text;
+color: #818cf8;
+-webkit-text-fill-color: #818cf8;
 }
 
 /* TIMETABLE */
@@ -519,8 +517,9 @@ body.dark .stat-label,
 body.dark .muted { color: var(–muted) !important; }
 
 /* Nav */
-body.dark .nav-tab { color: var(–muted) !important; }
+body.dark .nav-tab { color: #8892b0 !important; }
 body.dark .nav-tab.active { color: #818cf8 !important; border-bottom-color: #818cf8 !important; }
+body.dark .nav-tabs { background: #1a1d27 !important; }
 
 /* Buttons */
 body.dark .btn-secondary { background: var(–surface2); color: var(–text); border-color: var(–border); }
@@ -729,8 +728,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <button class="nav-tab" onclick="showPanel('check-in','student-nav')">Check In/Out</button>
     <button class="nav-tab" onclick="showPanel('attendance','student-nav')">My Records</button>
     <button class="nav-tab" onclick="showPanel('calendar','student-nav')">📅 Calendar</button>
-    <button class="nav-tab" onclick="showPanel('timetable','student-nav')">🗓 Timetable</button>
-    <button class="nav-tab" onclick="showPanel('leave-request','student-nav')">📝 Leave</button>
   </div>
 
   <!-- ADMIN NAV -->
@@ -741,8 +738,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <button class="nav-tab" onclick="showPanel('sessions','admin-nav')">Sessions</button>
     <button class="nav-tab" onclick="showPanel('students','admin-nav')">Students</button>
     <button class="nav-tab" onclick="showPanel('reports','admin-nav')">Reports</button>
-    <button class="nav-tab" onclick="showPanel('holidays','admin-nav')">🌴 Holidays</button>
-    <button class="nav-tab" onclick="showPanel('leave-mgmt','admin-nav')">📝 Leaves</button>
     <button class="nav-tab" onclick="showPanel('announcements','admin-nav')">📢 Announce</button>
     <button class="nav-tab" onclick="showPanel('settings','admin-nav')">Settings</button>
   </div>
@@ -1038,64 +1033,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <div class="card">
       <div class="card-title"><div class="icon">👤</div>My Profile</div>
       <div id="admin-profile-info" style="font-size:15px;color:var(--muted);line-height:2">Loading...</div>
-    </div>
-  </div>
-
-  <!-- TIMETABLE PANEL (Student) -->
-
-  <div class="panel" id="panel-timetable">
-    <div class="card">
-      <div class="card-title"><div class="icon">🗓</div>My Weekly Timetable</div>
-      <div id="timetable-grid"></div>
-    </div>
-  </div>
-
-  <!-- LEAVE REQUEST PANEL (Student) -->
-
-  <div class="panel" id="panel-leave-request">
-    <div class="card">
-      <div class="card-title"><div class="icon">📝</div>Submit Leave Request</div>
-      <div class="form-group"><label>Select Class</label><select id="leave-class-select"><option value="">-- Select class --</option></select></div>
-      <div class="form-group"><label>From Date</label><input type="date" id="leave-from"/></div>
-      <div class="form-group"><label>To Date</label><input type="date" id="leave-to"/></div>
-      <div class="form-group"><label>Reason</label><textarea id="leave-reason" rows="3" style="width:100%;padding:14px 18px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font-main);font-size:15px;outline:none;resize:vertical" placeholder="Briefly explain your reason..."></textarea></div>
-      <button class="btn btn-primary" onclick="submitLeaveRequest()">Submit Request</button>
-    </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">📋</div>My Leave History</div>
-      <div id="student-leave-list"><div class="empty-state"><span class="icon">📝</span>No leave requests yet</div></div>
-    </div>
-  </div>
-
-  <!-- HOLIDAYS PANEL (Admin) -->
-
-  <div class="panel" id="panel-holidays">
-    <div class="card">
-      <div class="card-title"><div class="icon">🌴</div>Add Holiday / No-Class Day</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Absences on marked holidays will not be counted against students.</p>
-      <div class="form-group"><label>Holiday Name</label><input type="text" id="holiday-name" placeholder="e.g. Diwali, Republic Day"/></div>
-      <div class="form-group"><label>From Date</label><input type="date" id="holiday-from"/></div>
-      <div class="form-group"><label>To Date</label><input type="date" id="holiday-to"/></div>
-      <button class="btn btn-primary btn-sm" onclick="addHoliday()">+ Add Holiday</button>
-    </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">📅</div>Upcoming Holidays</div>
-      <div id="holidays-list"><div class="empty-state"><span class="icon">🌴</span>No holidays added yet</div></div>
-    </div>
-  </div>
-
-  <!-- LEAVE MANAGEMENT PANEL (Admin) -->
-
-  <div class="panel" id="panel-leave-mgmt">
-    <div class="card">
-      <div class="card-title"><div class="icon">📝</div>Student Leave Requests</div>
-      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm leave-filter-btn active-filter" onclick="filterLeaves('all')">All</button>
-        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('pending')">⏳ Pending</button>
-        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('approved')">✅ Approved</button>
-        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('rejected')">❌ Rejected</button>
-      </div>
-      <div id="leave-mgmt-list"><div class="empty-state"><span class="icon">📝</span>No leave requests yet</div></div>
     </div>
   </div>
 
@@ -2149,6 +2086,8 @@ window.toggleTheme = () => {
   // Re-apply stat colors after theme switch
   document.querySelectorAll('.stat-num').forEach(el => {
     el.style.color = isDark ? '#818cf8' : 'var(--accent)';
+    el.style.webkitTextFillColor = isDark ? '#818cf8' : 'var(--accent)';
+    el.style.backgroundImage = 'none';
   });
   // Reload dashboard data so numbers reappear
   if(currentUser && currentUserData) {
