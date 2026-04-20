@@ -854,12 +854,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
             <button class="pin-btn" onclick="pinPress('back')"><span class="pin-btn-num">⌫</span></button>
           </div>
           <button class="btn btn-primary" style="width:270px;font-size:17px;padding:17px" onclick="submitPin()">✓ Confirm PIN</button>
-        <div class="qr-or-divider" style="width:270px"><span>OR</span></div>
-        <button class="scan-btn" id="qr-scan-btn" style="width:270px" onclick="toggleQrScanner()">📷 Scan QR Code</button>
-        <div id="qr-reader-wrap" style="width:270px;margin-top:12px;display:none">
-          <div id="qr-reader"></div>
-          <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-family:var(--font-mono)">Point camera at the QR code shown by your teacher</p>
-        </div>
         </div>
       </div>
     </div>
@@ -1428,6 +1422,9 @@ window.joinClassWithCode = async () => {
 };
 
 async function loadStudentDashboard() {
+  // Re-fetch latest user data so enrolledClasses is always current
+  const freshSnap = await getDoc(doc(db,'users',currentUser.uid));
+  if(freshSnap.exists()) currentUserData = freshSnap.data();
   const attSnap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
   const records = attSnap.docs.map(d => d.data());
   const present = records.filter(r => r.checkIn).length;
@@ -1508,13 +1505,25 @@ async function loadStudentAttendance() {
   </tr>`).join('')}</tbody></table>` : '<div class="empty-state"><span class="icon">📋</span>No records yet</div>';
 }
 
-window.downloadStudentReport = fmt => {
+window.downloadStudentReport = async fmt => {
+  // If records not loaded yet, fetch them first
+  if(!window._studentAttRecords) await loadStudentAttendance();
   const records = window._studentAttRecords || [];
-  if(!records.length) return toast('No records to download','error');
+  if(!records.length) return toast('No attendance records to download','error');
   if(fmt==='csv') {
-    const rows=[['Class','Date','CheckIn','CheckOut','Status'],...records.map(r=>[r.className||'',r.checkInTime?.toDate().toLocaleDateString()||'',r.checkInTime?.toDate().toLocaleTimeString()||'',r.checkOutTime?.toDate().toLocaleTimeString()||'',r.checkIn?'Present':'Absent'])];
+    const rows=[['Class','Date','CheckIn','CheckOut','Status'],...records.map(r=>[
+      r.className||'',
+      r.checkInTime?.toDate?.().toLocaleDateString()||'',
+      r.checkInTime?.toDate?.().toLocaleTimeString()||'',
+      r.checkOutTime?.toDate?.().toLocaleTimeString()||'',
+      r.checkIn?'Present':'Absent'
+    ])];
     downloadFile(rows.map(r=>r.join(',')).join('\n'),'my_attendance.csv','text/csv');
-  } else downloadFile(JSON.stringify(records,null,2),'my_attendance.json','application/json');
+    toast('CSV downloaded! ✅','success');
+  } else {
+    downloadFile(JSON.stringify(records,null,2),'my_attendance.json','application/json');
+    toast('JSON downloaded! ✅','success');
+  }
 };
 
 // ===== CHECK IN/OUT =====
@@ -1623,6 +1632,7 @@ window.submitPin = async () => {
       await addDoc(collection(db,'attendance'),{
         sessionId:session.id,classId:session.classId,className:session.className,
         studentId:currentUser.uid,studentName:currentUserData.name,studentEmail:currentUser.email,
+        studentPhone:currentUserData.phone||'',
         studentIdNum:currentUserData.studentId,checkIn:true,checkInTime:now,checkOut:false,checkOutTime:null,
         distance:window._studentDist||0
       });
@@ -1842,6 +1852,8 @@ window.toggleEnroll = async (studentId, classId, isEnrolled) => {
     toast('Student enrolled! ✅','success');
   }
   await Promise.all([updateDoc(classRef,{enrolledStudents:classEnrolled}),updateDoc(studentRef,{enrolledClasses:studentClasses})]);
+  // Refresh dashboard so student count updates immediately
+  loadAdminDashboard();
   openEnrollModal(classId, classSnap.data().name);
 };
 
@@ -1986,10 +1998,11 @@ async function loadAdminStudents(showRemoved = false) {
     return;
   }
   el.innerHTML=toggleBtn+`<div class="table-scroll-wrap"><table class="data-table">
-  <thead><tr><th>Name</th><th>ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
+  <thead><tr><th>Name</th><th>ID</th><th>Phone</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
   ${displayed.map(s=>`<tr style="${s.disabled?'opacity:0.45':''}">
     <td style="font-weight:700;min-width:100px">${s.name||'–'}${s.disabled?' <span class="chip chip-red" style="font-size:10px;padding:2px 8px">Removed</span>':''}</td>
     <td style="font-family:var(--font-mono);min-width:80px">${s.studentId||'–'}</td>
+    <td style="font-family:var(--font-mono);font-size:13px;min-width:100px">${s.phone||'–'}</td>
     <td style="min-width:120px;font-size:13px">${s.email||'–'}</td>
     <td>${(s.enrolledClasses||[]).length}</td>
     <td style="min-width:100px">${s.disabled
@@ -2063,10 +2076,11 @@ async function loadReport(classId) {
   const el=document.getElementById('report-data');
   if(!records.length){el.innerHTML='<div class="empty-state"><span class="icon">📊</span>No data</div>';return;}
   const byStudent={};
-  records.forEach(r=>{if(!byStudent[r.studentId])byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,id:r.studentIdNum,sessions:0,present:0};byStudent[r.studentId].sessions++;if(r.checkIn)byStudent[r.studentId].present++;});
-  el.innerHTML=`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
+  records.forEach(r=>{if(!byStudent[r.studentId])byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,phone:r.studentPhone||'–',id:r.studentIdNum,sessions:0,present:0};byStudent[r.studentId].sessions++;if(r.checkIn)byStudent[r.studentId].present++;});
+  el.innerHTML=`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Phone</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
   ${Object.values(byStudent).map(s=>{const pct=Math.round(s.present/s.sessions*100);return`<tr>
     <td style="font-weight:700">${s.name||'–'}</td><td style="font-family:var(--font-mono)">${s.id||'–'}</td>
+    <td style="font-family:var(--font-mono);font-size:13px">${s.phone}</td>
     <td>${s.sessions}</td><td>${s.present}</td>
     <td><span class="chip ${pct>=75?'chip-green':pct>=50?'chip-yellow':'chip-red'}">${pct}%</span></td>
   </tr>`;}).join('')}</tbody></table></div>`;
