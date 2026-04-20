@@ -1506,24 +1506,26 @@ async function loadStudentAttendance() {
 }
 
 window.downloadStudentReport = async fmt => {
-  // If records not loaded yet, fetch them first
-  if(!window._studentAttRecords) await loadStudentAttendance();
-  const records = window._studentAttRecords || [];
-  if(!records.length) return toast('No attendance records to download','error');
-  if(fmt==='csv') {
-    const rows=[['Class','Date','CheckIn','CheckOut','Status'],...records.map(r=>[
-      r.className||'',
-      r.checkInTime?.toDate?.().toLocaleDateString()||'',
-      r.checkInTime?.toDate?.().toLocaleTimeString()||'',
-      r.checkOutTime?.toDate?.().toLocaleTimeString()||'',
-      r.checkIn?'Present':'Absent'
-    ])];
-    downloadFile(rows.map(r=>r.join(',')).join('\n'),'my_attendance.csv','text/csv');
-    toast('CSV downloaded! ✅','success');
-  } else {
-    downloadFile(JSON.stringify(records,null,2),'my_attendance.json','application/json');
-    toast('JSON downloaded! ✅','success');
-  }
+  try {
+    // Fetch directly without orderBy to avoid Firestore index requirement
+    const snap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
+    const records = snap.docs.map(d=>d.data());
+    if(!records.length) return toast('No attendance records found','error');
+    if(fmt==='csv') {
+      const rows=[['Class','Date','CheckIn','CheckOut','Status'],...records.map(r=>[
+        r.className||'',
+        r.checkInTime?.toDate?.().toLocaleDateString()||'',
+        r.checkInTime?.toDate?.().toLocaleTimeString()||'',
+        r.checkOutTime?.toDate?.().toLocaleTimeString()||'',
+        r.checkIn?'Present':'Absent'
+      ])];
+      downloadFile(rows.map(r=>r.map(c=>'"'+String(c)+'"').join(',')).join('\n'),'my_attendance.csv','text/csv');
+      toast('CSV downloaded! ✅','success');
+    } else {
+      downloadFile(JSON.stringify(records,null,2),'my_attendance.json','application/json');
+      toast('JSON downloaded! ✅','success');
+    }
+  } catch(e) { toast('Download failed: '+e.message,'error'); }
 };
 
 // ===== CHECK IN/OUT =====
@@ -1690,10 +1692,25 @@ async function loadAdminDashboard() {
       <button class="btn btn-danger btn-sm" onclick="endSession('${s.id}')">End</button>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
   const recentSnap = await getDocs(query(collection(db,'attendance'),orderBy('checkInTime','desc')));
-  const recent = recentSnap.docs.slice(0,8).map(d=>({id:d.id,...d.data()}));
+  const allRecords = recentSnap.docs;
+  // Auto-delete attendance records older than 7 days
+  const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000);
+  const oldRecords = allRecords.filter(d=>{ const t=d.data().checkInTime?.toDate?.(); return t && t < sevenDaysAgo; });
+  if(oldRecords.length) await Promise.all(oldRecords.map(d=>deleteDoc(doc(db,'attendance',d.id))));
+  const recent = allRecords.filter(d=>!oldRecords.find(o=>o.id===d.id)).slice(0,8).map(d=>({id:d.id,...d.data()}));
   const rEl = document.getElementById('admin-recent-activity');
-  rEl.innerHTML = recent.length ? `<table class="data-table"><thead><tr><th>Student</th><th>Class</th><th>Time</th><th>Status</th></tr></thead><tbody>
-  ${recent.map(r=>`<tr><td style="font-weight:700">${r.studentName||'–'}</td><td>${r.className||'–'}</td><td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td><td><span class="chip chip-green">CHECKED IN</span></td></tr>`).join('')}
+  rEl.innerHTML = recent.length ? `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <button class="btn btn-danger btn-sm" onclick="clearAllRecentActivity()">🗑️ Clear All</button>
+  </div>
+  <table class="data-table"><thead><tr><th>Student</th><th>Class</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
+  ${recent.map(r=>`<tr>
+    <td style="font-weight:700">${r.studentName||'–'}</td>
+    <td>${r.className||'–'}</td>
+    <td>${r.checkInTime?r.checkInTime.toDate().toLocaleTimeString():'–'}</td>
+    <td><span class="chip chip-green">CHECKED IN</span></td>
+    <td><button class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:12px" onclick="deleteAttendanceRecord('${r.id}')">🗑️</button></td>
+  </tr>`).join('')}
   </tbody></table>` : '<div class="empty-state"><span class="icon">🕐</span>No recent activity</div>';
 }
 
@@ -1919,7 +1936,10 @@ async function loadAdminSessions() {
   const pEl=document.getElementById('past-sessions-admin');
   pEl.innerHTML=pastSessions.length?`<table class="data-table"><thead><tr><th>Class</th><th>Start</th><th>End</th><th>Actions</th></tr></thead><tbody>
   ${pastSessions.map(s=>`<tr><td style="font-weight:700">${s.className}</td><td>${fmtDate(s.startTime)}</td><td>${fmtDate(s.endTime)}</td>
-  <td><button class="btn btn-secondary btn-sm" onclick="viewSessionAttendance('${s.id}')">View</button></td></tr>`).join('')}
+  <td style="display:flex;gap:6px">
+    <button class="btn btn-secondary btn-sm" onclick="viewSessionAttendance('${s.id}')">👁 View</button>
+    <button class="btn btn-danger btn-sm" onclick="deletePastSession('${s.id}')">🗑️</button>
+  </td></tr>`).join('')}
   </tbody></table>`:'<div class="empty-state"><span class="icon">📜</span>No past sessions</div>';
 }
 
@@ -1927,6 +1947,28 @@ window.endSession = async sessionId => {
   if(!confirm('End this session?')) return;
   await updateDoc(doc(db,'sessions',sessionId),{active:false,endTime:serverTimestamp()});
   toast('Session ended ✅','success'); loadAdminSessions(); loadAdminDashboard();
+};
+
+window.deleteAttendanceRecord = async (recordId) => {
+  if(!confirm('Delete this attendance record?')) return;
+  await deleteDoc(doc(db,'attendance',recordId));
+  toast('Record deleted','success');
+  loadAdminDashboard();
+};
+
+window.clearAllRecentActivity = async () => {
+  if(!confirm('Clear all recent activity records? This cannot be undone.')) return;
+  const snap = await getDocs(query(collection(db,'attendance'),orderBy('checkInTime','desc')));
+  await Promise.all(snap.docs.slice(0,8).map(d=>deleteDoc(doc(db,'attendance',d.id))));
+  toast('Recent activity cleared ✅','success');
+  loadAdminDashboard();
+};
+
+window.deletePastSession = async (sessionId) => {
+  if(!confirm('Delete this past session? Attendance records for it will remain.')) return;
+  await deleteDoc(doc(db,'sessions',sessionId));
+  toast('Session deleted ✅','success');
+  loadAdminSessions();
 };
 
 // Auto-delete past sessions older than 24 hours
@@ -2072,11 +2114,20 @@ async function loadReport(classId) {
   const snap=await getDocs(attQ);
   const records=snap.docs.map(d=>({id:d.id,...d.data()}));
   window._reportRecords = records;
-  console.log('Report records loaded:', records.length);
   const el=document.getElementById('report-data');
   if(!records.length){el.innerHTML='<div class="empty-state"><span class="icon">📊</span>No data</div>';return;}
+  // Fetch phone numbers from users collection for all unique student IDs
+  const studentIds=[...new Set(records.map(r=>r.studentId).filter(Boolean))];
+  const phoneMap={};
+  await Promise.all(studentIds.map(async uid=>{
+    try{ const s=await getDoc(doc(db,'users',uid)); if(s.exists()) phoneMap[uid]=s.data().phone||'–'; }catch(e){}
+  }));
   const byStudent={};
-  records.forEach(r=>{if(!byStudent[r.studentId])byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,phone:r.studentPhone||'–',id:r.studentIdNum,sessions:0,present:0};byStudent[r.studentId].sessions++;if(r.checkIn)byStudent[r.studentId].present++;});
+  records.forEach(r=>{
+    if(!byStudent[r.studentId]) byStudent[r.studentId]={name:r.studentName,email:r.studentEmail,phone:phoneMap[r.studentId]||r.studentPhone||'–',id:r.studentIdNum,sessions:0,present:0};
+    byStudent[r.studentId].sessions++;
+    if(r.checkIn) byStudent[r.studentId].present++;
+  });
   el.innerHTML=`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Student</th><th>ID</th><th>Phone</th><th>Sessions</th><th>Present</th><th>Attendance</th></tr></thead><tbody>
   ${Object.values(byStudent).map(s=>{const pct=Math.round(s.present/s.sessions*100);return`<tr>
     <td style="font-weight:700">${s.name||'–'}</td><td style="font-family:var(--font-mono)">${s.id||'–'}</td>
