@@ -126,7 +126,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
 .stat-card{background:var(–surface);border:2px solid var(–border);border-radius:18px;padding:24px;text-align:center;box-shadow:var(–shadow)}
-.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);color:var(–accent)}
+.stat-num{font-size:2.4rem;font-weight:800;font-family:var(–font-mono);color:var(–accent);-webkit-text-fill-color:var(–accent)}
 .stat-label{font-size:12px;color:var(–muted);margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
 /* ATTENDANCE CIRCLE */
@@ -327,8 +327,8 @@ body.dark .auth-sub { color: var(–muted); }
 body.dark .link-btn { color: #818cf8; }
 body.dark .logout-btn { border-color: var(–border); color: var(–muted); }
 body.dark .logout-btn:hover { border-color: #ef4444; color: #ef4444; background: #3d1515; }
-body.dark .nav-tab { color: var(–muted); }
-body.dark .nav-tab.active { color: #818cf8; border-bottom-color: #818cf8; }
+body.dark .nav-tab { color: #8892b0 !important; }
+body.dark .nav-tab.active { color: #818cf8 !important; border-bottom-color: #818cf8 !important; }
 body.dark .modal-close { background: var(–surface2); border-color: var(–border); color: var(–muted); }
 body.dark .session-banner { background: linear-gradient(135deg,#0d2b1a,#0a1f30); border-color: #166534; color: #e8eaf6; }
 body.dark .ann-card { background: var(–surface2); border-color: var(–border); }
@@ -345,7 +345,6 @@ body.dark #main-app { background: var(–bg); }
 body.dark .session-banner * { color: inherit; }
 body.dark .leave-card { background: var(–surface2); border-color: var(–border); }
 body.dark .holiday-item { background: var(–surface2); border-color: var(–border); }
-body.dark .timetable-slot { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.2); }
 
 body.dark .pin-box { background: var(–surface2); border-color: var(–border); color: #818cf8; }
 body.dark .pin-box.filled { background: rgba(129,140,248,0.1); border-color: #818cf8; }
@@ -357,20 +356,13 @@ body.dark .pin-btn:active { background: #4f46e5; color: #fff; border-color: #4f4
 body.dark .pin-btn-sub { color: var(–muted); }
 
 body.dark .stat-num {
-background: linear-gradient(135deg,#818cf8,#a78bfa);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-background-clip: text;
+color: #818cf8 !important;
+-webkit-text-fill-color: #818cf8 !important;
+background: none !important;
+-webkit-background-clip: unset !important;
+background-clip: unset !important;
 }
 
-/* TIMETABLE */
-.timetable-day{margin-bottom:18px}
-.timetable-day-label{font-weight:800;font-size:13px;color:var(–muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-left:4px}
-.timetable-slot{background:linear-gradient(135deg,rgba(67,97,238,0.08),rgba(124,58,237,0.08));border:1.5px solid rgba(67,97,238,0.2);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px}
-.timetable-time{font-family:var(–font-mono);font-size:13px;font-weight:700;color:var(–accent);min-width:110px}
-.timetable-info{flex:1}
-.timetable-name{font-weight:800;font-size:15px;color:var(–text)}
-.timetable-room{font-size:12px;color:var(–muted);margin-top:2px}
 /* LEAVE */
 .leave-card{background:var(–surface2);border:1.5px solid var(–border);border-radius:14px;padding:16px;margin-bottom:12px}
 .leave-card-header{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px}
@@ -394,28 +386,6 @@ background-clip: text;
 .scan-btn{width:100%;padding:16px;border:2px solid var(–accent);border-radius:14px;background:transparent;color:var(–accent);font-family:var(–font-main);font-weight:700;font-size:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
 .scan-btn:hover{background:var(–accent);color:#fff}
 .scan-btn.scanning{background:var(–accent);color:#fff;animation:pulse-dot 1.5s infinite}
-
-/* CHAT */
-.chat-list{display:flex;flex-direction:column;gap:10px}
-.chat-contact{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(–surface2);border:1.5px solid var(–border);border-radius:14px;cursor:pointer;transition:all .2s}
-.chat-contact:hover{border-color:var(–accent);background:var(–surface)}
-.chat-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(–accent),var(–accent2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
-.chat-contact-info{flex:1}
-.chat-contact-name{font-weight:800;font-size:15px;color:var(–text)}
-.chat-contact-sub{font-size:12px;color:var(–muted);margin-top:2px}
-.chat-unread{background:var(–accent);color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.chat-window{display:flex;flex-direction:column;height:calc(100vh - 220px);min-height:400px}
-.chat-header{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:2px solid var(–border);margin-bottom:14px}
-.chat-back{background:none;border:none;font-size:22px;cursor:pointer;color:var(–accent);padding:0 8px 0 0}
-.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 12px}
-.msg{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;word-break:break-word}
-.msg.sent{background:var(–accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.msg.recv{background:var(–surface2);color:var(–text);align-self:flex-start;border-bottom-left-radius:4px;border:1.5px solid var(–border)}
-.msg-time{font-size:10px;opacity:0.7;margin-top:4px;text-align:right}
-.chat-input-row{display:flex;gap:10px;padding-top:12px;border-top:2px solid var(–border)}
-.chat-input{flex:1;padding:12px 16px;background:var(–bg);border:2px solid var(–border);border-radius:12px;color:var(–text);font-family:var(–font-main);font-size:15px;outline:none;resize:none}
-.chat-input:focus{border-color:var(–accent)}
-.chat-send-btn{background:var(–accent);border:none;color:#fff;padding:12px 18px;border-radius:12px;font-size:20px;cursor:pointer;flex-shrink:0}
 
 /* NOTIFICATION BELL */
 .notif-bell{background:none;border:2px solid var(–border);color:var(–muted);padding:8px 12px;border-radius:10px;cursor:pointer;font-size:16px;transition:all .2s;position:relative}
@@ -541,8 +511,9 @@ body.dark .stat-label,
 body.dark .muted { color: var(–muted) !important; }
 
 /* Nav */
-body.dark .nav-tab { color: var(–muted) !important; }
+body.dark .nav-tab { color: #8892b0 !important; }
 body.dark .nav-tab.active { color: #818cf8 !important; border-bottom-color: #818cf8 !important; }
+body.dark .nav-tabs { background: #1a1d27 !important; }
 
 /* Buttons */
 body.dark .btn-secondary { background: var(–surface2); color: var(–text); border-color: var(–border); }
@@ -751,10 +722,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <button class="nav-tab" onclick="showPanel('my-classes','student-nav')">My Classes</button>
     <button class="nav-tab" onclick="showPanel('check-in','student-nav')">Check In/Out</button>
     <button class="nav-tab" onclick="showPanel('attendance','student-nav')">My Records</button>
-    <button class="nav-tab" onclick="showPanel('chat','student-nav')">💬 Chat</button>
     <button class="nav-tab" onclick="showPanel('calendar','student-nav')">📅 Calendar</button>
-    <button class="nav-tab" onclick="showPanel('timetable','student-nav')">🗓 Timetable</button>
-    <button class="nav-tab" onclick="showPanel('leave-request','student-nav')">📝 Leave</button>
   </div>
 
   <!-- ADMIN NAV -->
@@ -765,9 +733,6 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     <button class="nav-tab" onclick="showPanel('sessions','admin-nav')">Sessions</button>
     <button class="nav-tab" onclick="showPanel('students','admin-nav')">Students</button>
     <button class="nav-tab" onclick="showPanel('reports','admin-nav')">Reports</button>
-    <button class="nav-tab" onclick="showPanel('holidays','admin-nav')">🌴 Holidays</button>
-    <button class="nav-tab" onclick="showPanel('leave-mgmt','admin-nav')">📝 Leaves</button>
-    <button class="nav-tab" onclick="showPanel('admin-chat','admin-nav')">💬 Chat</button>
     <button class="nav-tab" onclick="showPanel('announcements','admin-nav')">📢 Announce</button>
     <button class="nav-tab" onclick="showPanel('settings','admin-nav')">Settings</button>
   </div>
@@ -1066,111 +1031,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
     </div>
   </div>
 
-  <!-- TIMETABLE PANEL (Student) -->
-
-  <div class="panel" id="panel-timetable">
-    <div class="card">
-      <div class="card-title"><div class="icon">🗓</div>My Weekly Timetable</div>
-      <div id="timetable-grid"></div>
-    </div>
-  </div>
-
-  <!-- LEAVE REQUEST PANEL (Student) -->
-
-  <div class="panel" id="panel-leave-request">
-    <div class="card">
-      <div class="card-title"><div class="icon">📝</div>Submit Leave Request</div>
-      <div class="form-group"><label>Select Class</label><select id="leave-class-select"><option value="">-- Select class --</option></select></div>
-      <div class="form-group"><label>From Date</label><input type="date" id="leave-from"/></div>
-      <div class="form-group"><label>To Date</label><input type="date" id="leave-to"/></div>
-      <div class="form-group"><label>Reason</label><textarea id="leave-reason" rows="3" style="width:100%;padding:14px 18px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font-main);font-size:15px;outline:none;resize:vertical" placeholder="Briefly explain your reason..."></textarea></div>
-      <button class="btn btn-primary" onclick="submitLeaveRequest()">Submit Request</button>
-    </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">📋</div>My Leave History</div>
-      <div id="student-leave-list"><div class="empty-state"><span class="icon">📝</span>No leave requests yet</div></div>
-    </div>
-  </div>
-
-  <!-- HOLIDAYS PANEL (Admin) -->
-
-  <div class="panel" id="panel-holidays">
-    <div class="card">
-      <div class="card-title"><div class="icon">🌴</div>Add Holiday / No-Class Day</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Absences on marked holidays will not be counted against students.</p>
-      <div class="form-group"><label>Holiday Name</label><input type="text" id="holiday-name" placeholder="e.g. Diwali, Republic Day"/></div>
-      <div class="form-group"><label>From Date</label><input type="date" id="holiday-from"/></div>
-      <div class="form-group"><label>To Date</label><input type="date" id="holiday-to"/></div>
-      <button class="btn btn-primary btn-sm" onclick="addHoliday()">+ Add Holiday</button>
-    </div>
-    <div class="card">
-      <div class="card-title"><div class="icon">📅</div>Upcoming Holidays</div>
-      <div id="holidays-list"><div class="empty-state"><span class="icon">🌴</span>No holidays added yet</div></div>
-    </div>
-  </div>
-
-  <!-- LEAVE MANAGEMENT PANEL (Admin) -->
-
-  <div class="panel" id="panel-leave-mgmt">
-    <div class="card">
-      <div class="card-title"><div class="icon">📝</div>Student Leave Requests</div>
-      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm leave-filter-btn active-filter" onclick="filterLeaves('all')">All</button>
-        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('pending')">⏳ Pending</button>
-        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('approved')">✅ Approved</button>
-        <button class="btn btn-secondary btn-sm leave-filter-btn" onclick="filterLeaves('rejected')">❌ Rejected</button>
-      </div>
-      <div id="leave-mgmt-list"><div class="empty-state"><span class="icon">📝</span>No leave requests yet</div></div>
-    </div>
-  </div>
-
   <!-- CO-TEACHER MODAL trigger in manage-classes -->
-
-  <!-- STUDENT CHAT PANEL -->
-
-  <div class="panel" id="panel-chat">
-    <div class="card" id="chat-contacts-view">
-      <div class="card-title"><div class="icon">💬</div>Message Your Teachers</div>
-      <div id="chat-contacts-list"><div class="empty-state"><span class="icon">💬</span>Enroll in a class to chat with your teacher</div></div>
-    </div>
-    <div class="card hidden" id="chat-window-view">
-      <div class="chat-header">
-        <button class="chat-back" onclick="closeChatWindow()">&#x2190;</button>
-        <div class="chat-avatar" id="chat-avatar-letter">T</div>
-        <div><div class="chat-contact-name" id="chat-window-name">Teacher</div><div class="chat-contact-sub" id="chat-window-sub"></div></div>
-      </div>
-      <div class="chat-window">
-        <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input-row">
-          <textarea class="chat-input" id="chat-input" rows="1" placeholder="Type a message..."></textarea>
-          <button class="chat-send-btn" onclick="sendChatMessage()">📤</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ADMIN CHAT PANEL -->
-
-  <div class="panel" id="panel-admin-chat">
-    <div class="card" id="admin-chat-contacts-view">
-      <div class="card-title"><div class="icon">💬</div>Student Messages</div>
-      <div id="admin-chat-contacts-list"><div class="empty-state"><span class="icon">💬</span>No messages yet</div></div>
-    </div>
-    <div class="card hidden" id="admin-chat-window-view">
-      <div class="chat-header">
-        <button class="chat-back" onclick="closeAdminChatWindow()">&#x2190;</button>
-        <div class="chat-avatar" id="admin-chat-avatar-letter">S</div>
-        <div><div class="chat-contact-name" id="admin-chat-window-name">Student</div><div class="chat-contact-sub" id="admin-chat-window-sub"></div></div>
-      </div>
-      <div class="chat-window">
-        <div class="chat-messages" id="admin-chat-messages"></div>
-        <div class="chat-input-row">
-          <textarea class="chat-input" id="admin-chat-input" rows="1" placeholder="Reply..."></textarea>
-          <button class="chat-send-btn" onclick="sendAdminChatMessage()">📤</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div class="panel" id="panel-announcements">
     <div class="card">
@@ -1442,12 +1303,7 @@ window.showPanel = (panelId, navId) => {
   if(panelId==='my-classes') loadStudentClasses();
   if(panelId==='calendar') loadCalendar();
   if(panelId==='announcements'){loadAnnouncementClasses();loadAnnouncementsList();}
-  if(panelId==='chat') loadChatContacts();
-  if(panelId==='admin-chat') loadAdminChatContacts();
-  if(panelId==='timetable') loadTimetable();
-  if(panelId==='leave-request'){loadLeaveClassSelect();loadStudentLeaveList();}
-  if(panelId==='holidays') loadHolidays();
-  if(panelId==='leave-mgmt') loadLeaveMgmt();
+
 };
 
 // ===== STUDENT DASHBOARD =====
@@ -1747,25 +1603,7 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-students').textContent = studentsSnap.size;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
-  // Calculate today's attendance
-  try {
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
-    const myClassIds = classesSnap.docs.map(d=>d.id);
-    if(myClassIds.length) {
-      const todayAttSnap = await getDocs(query(collection(db,'attendance'),
-        where('classId','in',myClassIds.slice(0,10))));
-      const todayRecs = todayAttSnap.docs.map(d=>d.data()).filter(r=>{
-        const t = r.checkInTime?.toDate?.();
-        return t && t >= todayStart && t <= todayEnd;
-      });
-      const todayPresent = todayRecs.filter(r=>r.checkIn).length;
-      const todayTotal = todayRecs.length;
-      document.getElementById('a-today-att').textContent = todayTotal ? Math.round(todayPresent/todayTotal*100)+'%' : '0%';
-    } else {
-      document.getElementById('a-today-att').textContent = '0%';
-    }
-  } catch(e) { document.getElementById('a-today-att').textContent = '0%'; }
+  document.getElementById('a-today-att').textContent = '–%';
   const activeSessions = sessionsSnap.docs.map(d=>({id:d.id,...d.data()}));
   const aEl = document.getElementById('admin-active-sessions');
   aEl.innerHTML = activeSessions.length ? activeSessions.map(s=>`
@@ -2241,6 +2079,8 @@ window.toggleTheme = () => {
   // Re-apply stat colors after theme switch
   document.querySelectorAll('.stat-num').forEach(el => {
     el.style.color = isDark ? '#818cf8' : 'var(--accent)';
+    el.style.webkitTextFillColor = isDark ? '#818cf8' : 'var(--accent)';
+    el.style.backgroundImage = 'none';
   });
   // Reload dashboard data so numbers reappear
   if(currentUser && currentUserData) {
@@ -2517,171 +2357,6 @@ async function loadStudentAnnouncements(){
   } catch(e){ el.innerHTML=''; }
 }
 
-// ===== TIMETABLE =====
-async function loadTimetable() {
-  const el = document.getElementById('timetable-grid');
-  if(!el) return;
-  const enrolled = currentUserData.enrolledClasses || [];
-  if(!enrolled.length) { el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No classes enrolled yet</div>'; return; }
-  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const classSnaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
-  const classes = classSnaps.filter(s=>s.exists()).map(s=>({id:s.id,...s.data()}));
-  const byDay = {};
-  days.forEach(d => byDay[d] = []);
-  classes.forEach(c => {
-    const sched = c.schedule || '';
-    days.forEach(d => {
-      if(sched.toLowerCase().includes(d.toLowerCase().slice(0,3)) || sched.toLowerCase().includes(d.toLowerCase())) {
-        byDay[d].push(c);
-      }
-    });
-  });
-  let html = '';
-  days.forEach(d => {
-    if(!byDay[d].length) return;
-    html += `<div class="timetable-day"><div class="timetable-day-label">${d}</div>${byDay[d].map(c=>`<div class="timetable-slot"><div class="timetable-time">${c.time||'TBD'}</div><div class="timetable-info"><div class="timetable-name">${c.name}</div><div class="timetable-room">${c.code||''} • ${c.room||'No room set'}</div></div></div>`).join('')}</div>`;
-  });
-  el.innerHTML = html || '<div class="empty-state"><span class="icon">ð</span>No schedule info found.</div>';
-}
-
-// ===== LEAVE REQUESTS (Student) =====
-async function loadLeaveClassSelect() {
-  const sel = document.getElementById('leave-class-select');
-  if(!sel) return;
-  const enrolled = currentUserData.enrolledClasses || [];
-  if(!enrolled.length) { sel.innerHTML='<option value="">No classes enrolled</option>'; return; }
-  const snaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
-  sel.innerHTML = '<option value="">-- Select class --</option>' + snaps.filter(s=>s.exists()).map(s=>`<option value="${s.id}">${s.data().name}</option>`).join('');
-}
-
-window.submitLeaveRequest = async () => {
-  const classId = document.getElementById('leave-class-select').value;
-  const from = document.getElementById('leave-from').value;
-  const to = document.getElementById('leave-to').value;
-  const reason = document.getElementById('leave-reason').value.trim();
-  if(!classId||!from||!to||!reason) return toast('Fill all fields','error');
-  if(from > to) return toast('End date must be after start date','error');
-  const classSnap = await getDoc(doc(db,'classes',classId));
-  const classData = classSnap.exists() ? classSnap.data() : {};
-  const className = classData.name || '';
-  // Collect all teacher IDs: primary + co-teachers
-  const primaryAdminId = classData.adminId || '';
-  const coTeacherIds = (classData.coTeachers||[]).map(t=>t.uid).filter(Boolean);
-  const allTeacherIds = [primaryAdminId, ...coTeacherIds].filter(Boolean);
-  await addDoc(collection(db,'leaveRequests'),{
-    studentId:currentUser.uid, studentName:currentUserData.name, studentEmail:currentUser.email,
-    classId, className, from, to, reason, status:'pending',
-    adminId: primaryAdminId,
-    allTeacherIds,  // All teachers who can approve
-    createdAt:serverTimestamp()
-  });
-  toast('Leave request submitted ✅','success');
-  document.getElementById('leave-from').value='';
-  document.getElementById('leave-to').value='';
-  document.getElementById('leave-reason').value='';
-  loadStudentLeaveList();
-};
-
-async function loadStudentLeaveList() {
-  const el = document.getElementById('student-leave-list');
-  if(!el) return;
-  const q = query(collection(db,'leaveRequests'),where('studentId','==',currentUser.uid),orderBy('createdAt','desc'));
-  const snap = await getDocs(q);
-  if(snap.empty){el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No leave requests yet</div>';return;}
-  el.innerHTML = snap.docs.map(d=>{
-    const r=d.data();
-    const chip = r.status==='approved'?'chip-green':r.status==='rejected'?'chip-red':'chip-yellow';
-    return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.className||'-'}</div><div class="leave-card-meta">${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='rejected'&&r.rejectReason?`<div style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600">Reason: ${r.rejectReason}</div>`:''}</div>`;
-  }).join('');
-}
-
-// ===== HOLIDAYS (Admin) =====
-window.addHoliday = async () => {
-  const name = document.getElementById('holiday-name').value.trim();
-  const from = document.getElementById('holiday-from').value;
-  const to = document.getElementById('holiday-to').value;
-  if(!name||!from||!to) return toast('Fill all fields','error');
-  if(from>to) return toast('End date must be after start date','error');
-  await addDoc(collection(db,'holidays'),{name,from,to,adminId:currentUser.uid,createdAt:serverTimestamp()});
-  toast('Holiday added ð´','success');
-  document.getElementById('holiday-name').value='';
-  document.getElementById('holiday-from').value='';
-  document.getElementById('holiday-to').value='';
-  loadHolidays();
-};
-
-async function loadHolidays() {
-  const el = document.getElementById('holidays-list');
-  if(!el) return;
-  const q = query(collection(db,'holidays'),where('adminId','==',currentUser.uid),orderBy('from','desc'));
-  const snap = await getDocs(q);
-  if(snap.empty){el.innerHTML='<div class="empty-state"><span class="icon">ð´</span>No holidays added yet</div>';return;}
-  el.innerHTML = snap.docs.map(d=>{
-    const h=d.data();
-    const dateLabel = h.from===h.to ? h.from : `${h.from} → ${h.to}`;
-    return `<div class="holiday-item"><div><div class="holiday-name">ð´ ${h.name}</div><div class="holiday-date">${dateLabel}</div></div><button class="btn btn-danger btn-sm" onclick="deleteHoliday('${d.id}')">Delete</button></div>`;
-  }).join('');
-}
-
-window.deleteHoliday = async (id) => {
-  if(!confirm('Delete this holiday?')) return;
-  await deleteDoc(doc(db,'holidays',id));
-  toast('Holiday removed','success');
-  loadHolidays();
-};
-
-// ===== LEAVE MANAGEMENT (Admin) =====
-let allLeaveRequests = [];
-
-async function loadLeaveMgmt() {
-  const el = document.getElementById('leave-mgmt-list');
-  if(!el) return;
-  // Show leaves where this teacher is primary OR co-teacher
-  const q = query(collection(db,'leaveRequests'),where('allTeacherIds','array-contains',currentUser.uid),orderBy('createdAt','desc'));
-  let snap;
-  try { snap = await getDocs(q); }
-  catch(e) {
-    // Fallback for old leave requests without allTeacherIds
-    snap = await getDocs(query(collection(db,'leaveRequests'),where('adminId','==',currentUser.uid),orderBy('createdAt','desc')));
-  }
-  allLeaveRequests = snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderLeaves('all');
-}
-
-window.filterLeaves = (status) => {
-  document.querySelectorAll('.leave-filter-btn').forEach(b=>b.classList.remove('active-filter'));
-  event.target.classList.add('active-filter');
-  renderLeaves(status);
-};
-
-function renderLeaves(status) {
-  const el = document.getElementById('leave-mgmt-list');
-  if(!el) return;
-  const filtered = status==='all' ? allLeaveRequests : allLeaveRequests.filter(r=>r.status===status);
-  if(!filtered.length){el.innerHTML='<div class="empty-state"><span class="icon">ð</span>No requests found</div>';return;}
-  el.innerHTML = filtered.map(r=>{
-    const chip = r.status==='approved'?'chip-green':r.status==='rejected'?'chip-red':'chip-yellow';
-    return `<div class="leave-card"><div class="leave-card-header"><div><div class="leave-card-name">${r.studentName||'-'}</div><div class="leave-card-meta">${r.className||'-'} • ${r.from} → ${r.to}</div></div><span class="chip ${chip}">${r.status.toUpperCase()}</span></div><div class="leave-card-reason">${r.reason}</div>${r.status==='pending'?`<div class="leave-actions"><button class="btn btn-green btn-sm" onclick="reviewLeave('${r.id}','approved')">Approve</button><button class="btn btn-danger btn-sm" onclick="reviewLeave('${r.id}','rejected')">Reject</button></div>`:''}</div>`;
-  }).join('');
-}
-
-window.reviewLeave = async (id, status) => {
-  let rejectReason = '';
-  if(status==='rejected') { rejectReason = prompt('Reason for rejection (optional):') || ''; }
-  await updateDoc(doc(db,'leaveRequests',id),{status, rejectReason, reviewedAt:serverTimestamp()});
-  toast(status==='approved'?'Leave approved ✅':'Leave rejected ❌', status==='approved'?'success':'error');
-  const leaveSnap = await getDoc(doc(db,'leaveRequests',id));
-  const leave = leaveSnap.data();
-  await addDoc(collection(db,'notifications'),{
-    userId: leave.studentId,
-    title: status==='approved'?'✅ Leave Approved':'Leave Rejected',
-    body: `Your leave for ${leave.className} (${leave.from} to ${leave.to}) has been ${status}.`,
-    read: false, createdAt: serverTimestamp()
-  });
-  loadLeaveMgmt();
-  checkUnreadNotifications();
-};
-
 // ===== CO-TEACHERS =====
 window.openCoTeacherModal = async (classId, className) => {
   document.getElementById('co-teacher-class-id').value = classId;
@@ -2894,183 +2569,6 @@ async function handleQrCheckin(decodedText) {
     toast('Invalid QR code. Please try again.', 'error');
   }
 }
-
-// ===== CHAT =====
-let currentChatTeacher = null;
-let currentChatStudent = null;
-let chatUnsubscribe = null;
-let adminChatUnsubscribe = null;
-
-function getChatId(uid1, uid2) {
-  return [uid1, uid2].sort().join('_');
-}
-
-// ---- STUDENT SIDE ----
-async function loadChatContacts() {
-  const el = document.getElementById('chat-contacts-list');
-  if(!el) return;
-  const enrolled = currentUserData.enrolledClasses || [];
-  if(!enrolled.length) {
-    el.innerHTML = '<div class="empty-state"><span class="icon">ð¬</span>Enroll in a class to chat with your teacher</div>';
-    return;
-  }
-  const snaps = await Promise.all(enrolled.map(id => getDoc(doc(db,'classes',id))));
-  const teachers = [];
-  const seen = new Set();
-  for(const s of snaps) {
-    if(!s.exists()) continue;
-    const d = s.data();
-    if(d.adminId && !seen.has(d.adminId)) {
-      seen.add(d.adminId);
-      const tSnap = await getDoc(doc(db,'users',d.adminId));
-      if(tSnap.exists()) teachers.push({uid:d.adminId,...tSnap.data(),className:d.name});
-    }
-  }
-  if(!teachers.length) { el.innerHTML = '<div class="empty-state"><span class="icon">ð¬</span>No teachers found</div>'; return; }
-  el.innerHTML = '';
-  const div = document.createElement('div');
-  div.className = 'chat-list';
-  teachers.forEach(t => {
-    const item = document.createElement('div');
-    item.className = 'chat-contact';
-    item.innerHTML = `<div class="chat-avatar">${(t.name||'T')[0].toUpperCase()}</div>`
-      + `<div class="chat-contact-info"><div class="chat-contact-name">${t.name||'Teacher'}</div>`
-      + `<div class="chat-contact-sub">${t.className} • ${t.department||'Teacher'}</div></div>`;
-    item.onclick = () => openChatWindow(t);
-    div.appendChild(item);
-  });
-  el.appendChild(div);
-}
-
-window.openChatWindow = (teacher) => {
-  currentChatTeacher = teacher;
-  document.getElementById('chat-contacts-view').classList.add('hidden');
-  document.getElementById('chat-window-view').classList.remove('hidden');
-  document.getElementById('chat-window-name').textContent = teacher.name||'Teacher';
-  document.getElementById('chat-window-sub').textContent = teacher.className;
-  document.getElementById('chat-avatar-letter').textContent = (teacher.name||'T')[0].toUpperCase();
-  const chatId = getChatId(currentUser.uid, teacher.uid);
-  const messagesEl = document.getElementById('chat-messages');
-  messagesEl.innerHTML = '';
-  if(chatUnsubscribe) chatUnsubscribe();
-  chatUnsubscribe = onSnapshot(
-    query(collection(db,'chats',chatId,'messages'), orderBy('createdAt','asc')),
-    snap => {
-      messagesEl.innerHTML = snap.docs.map(d => {
-        const m = d.data();
-        const isMine = m.senderId === currentUser.uid;
-        const time = m.createdAt?.toDate?.()?.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) || '';
-        return `<div class="msg ${isMine?'sent':'recv'}">${m.text}<div class="msg-time">${time}</div></div>`;
-      }).join('');
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-  );
-};
-
-window.closeChatWindow = () => {
-  if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
-  document.getElementById('chat-window-view').classList.add('hidden');
-  document.getElementById('chat-contacts-view').classList.remove('hidden');
-  currentChatTeacher = null;
-};
-
-window.sendChatMessage = async () => {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if(!text || !currentChatTeacher) return;
-  input.value = '';
-  const chatId = getChatId(currentUser.uid, currentChatTeacher.uid);
-  await setDoc(doc(db,'chats',chatId), {
-    participants: [currentUser.uid, currentChatTeacher.uid],
-    studentId: currentUser.uid, studentName: currentUserData.name,
-    teacherId: currentChatTeacher.uid, teacherName: currentChatTeacher.name,
-    lastMessage: text, lastAt: serverTimestamp()
-  }, {merge:true});
-  await addDoc(collection(db,'chats',chatId,'messages'), {
-    text, senderId: currentUser.uid, senderName: currentUserData.name,
-    createdAt: serverTimestamp()
-  });
-};
-
-// Allow Enter to send (Shift+Enter for newline)
-document.addEventListener('DOMContentLoaded', () => {
-  const inp = document.getElementById('chat-input');
-  if(inp) inp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMessage();} });
-  const ainp = document.getElementById('admin-chat-input');
-  if(ainp) ainp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAdminChatMessage();} });
-});
-
-// ---- ADMIN SIDE ----
-async function loadAdminChatContacts() {
-  const el = document.getElementById('admin-chat-contacts-list');
-  if(!el) return;
-  const snap = await getDocs(query(collection(db,'chats'),
-    where('teacherId','==',currentUser.uid), orderBy('lastAt','desc')));
-  if(snap.empty) { el.innerHTML = '<div class="empty-state"><span class="icon">ð¬</span>No messages yet</div>'; return; }
-  el.innerHTML = '';
-  const div = document.createElement('div');
-  div.className = 'chat-list';
-  snap.docs.forEach(d => {
-    const c = d.data();
-    const item = document.createElement('div');
-    item.className = 'chat-contact';
-    item.innerHTML = `<div class="chat-avatar">${(c.studentName||'S')[0].toUpperCase()}</div>`
-      + `<div class="chat-contact-info"><div class="chat-contact-name">${c.studentName||'Student'}</div>`
-      + `<div class="chat-contact-sub">ð¬ ${c.lastMessage||''}</div></div>`;
-    item.onclick = () => openAdminChatWindow(c.studentId, c.studentName);
-    div.appendChild(item);
-  });
-  el.appendChild(div);
-}
-
-window.openAdminChatWindow = (studentId, studentName) => {
-  currentChatStudent = {uid: studentId, name: studentName};
-  document.getElementById('admin-chat-contacts-view').classList.add('hidden');
-  document.getElementById('admin-chat-window-view').classList.remove('hidden');
-  document.getElementById('admin-chat-window-name').textContent = studentName||'Student';
-  document.getElementById('admin-chat-avatar-letter').textContent = (studentName||'S')[0].toUpperCase();
-  const chatId = getChatId(currentUser.uid, studentId);
-  const messagesEl = document.getElementById('admin-chat-messages');
-  messagesEl.innerHTML = '';
-  if(adminChatUnsubscribe) adminChatUnsubscribe();
-  adminChatUnsubscribe = onSnapshot(
-    query(collection(db,'chats',chatId,'messages'), orderBy('createdAt','asc')),
-    snap => {
-      messagesEl.innerHTML = snap.docs.map(d => {
-        const m = d.data();
-        const isMine = m.senderId === currentUser.uid;
-        const time = m.createdAt?.toDate?.()?.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) || '';
-        return `<div class="msg ${isMine?'sent':'recv'}">${m.text}<div class="msg-time">${time}</div></div>`;
-      }).join('');
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-  );
-};
-
-window.closeAdminChatWindow = () => {
-  if(adminChatUnsubscribe) { adminChatUnsubscribe(); adminChatUnsubscribe = null; }
-  document.getElementById('admin-chat-window-view').classList.add('hidden');
-  document.getElementById('admin-chat-contacts-view').classList.remove('hidden');
-  currentChatStudent = null;
-};
-
-window.sendAdminChatMessage = async () => {
-  const input = document.getElementById('admin-chat-input');
-  const text = input.value.trim();
-  if(!text || !currentChatStudent) return;
-  input.value = '';
-  const chatId = getChatId(currentUser.uid, currentChatStudent.uid);
-  await setDoc(doc(db,'chats',chatId), {
-    participants: [currentUser.uid, currentChatStudent.uid],
-    teacherId: currentUser.uid, teacherName: currentUserData.name,
-    studentId: currentChatStudent.uid, studentName: currentChatStudent.name,
-    lastMessage: text, lastAt: serverTimestamp()
-  }, {merge:true});
-  await addDoc(collection(db,'chats',chatId,'messages'), {
-    text, senderId: currentUser.uid, senderName: currentUserData.name,
-    createdAt: serverTimestamp()
-  });
-};
 
 // PWA
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
