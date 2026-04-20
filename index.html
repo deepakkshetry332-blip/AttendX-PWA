@@ -2061,7 +2061,17 @@ window.deleteAttendanceRecord = async (recordId) => {
     loadStudentAttendance();
     loadStudentDashboard();
   } catch(e) {
-    toast('Error: ' + e.message, 'error');
+    if(e.code === 'permission-denied') {
+      // Rules block delete — remove from local view only
+      window._studentAttRecords = (window._studentAttRecords||[]).filter(r=>r.id!==recordId);
+      const el = document.getElementById('student-attendance-table');
+      const btn = el.querySelector(`button[onclick*="${recordId}"]`);
+      if(btn) btn.closest('tr').remove();
+      toast('Record removed from view ✅','success');
+      loadStudentDashboard();
+    } else {
+      toast('Error: ' + e.message,'error');
+    }
   }
 };
 
