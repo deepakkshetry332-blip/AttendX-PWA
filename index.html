@@ -1704,27 +1704,14 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
 
-  // Count students: query by enrolledClasses array-contains-any (avoids reading all users)
+  // Count students — simple query filtered in JS, no index needed
   let myStudentCount = 0;
   if(myClassIds.length > 0) {
-    try {
-      // Firestore array-contains-any supports up to 30 items
-      const chunk = myClassIds.slice(0,10);
-      const studentsSnap = await getDocs(query(
-        collection(db,'users'),
-        where('enrolledClasses','array-contains-any', chunk)
-      ));
-      myStudentCount = studentsSnap.docs.filter(d=>!d.data().disabled).length;
-    } catch(e) {
-      // Fallback: try reading all students
-      try {
-        const sSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
-        myStudentCount = sSnap.docs.filter(d => {
-          const data = d.data();
-          return !data.disabled && (data.enrolledClasses||[]).some(cid=>myClassIds.includes(cid));
-        }).length;
-      } catch(e2) { myStudentCount = '–'; }
-    }
+    const sSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
+    myStudentCount = sSnap.docs.filter(d => {
+      const data = d.data();
+      return !data.disabled && (data.enrolledClasses||[]).some(cid => myClassIds.includes(cid));
+    }).length;
   }
   document.getElementById('a-total-students').textContent = myStudentCount;
 
@@ -2164,48 +2151,19 @@ async function loadAdminStudents(showRemoved = false) {
   el.innerHTML = '<div class="empty-state"><span class="icon">⏳</span>Loading students...</div>';
 
   // Get this teacher's classes
-  let classesSnap;
-  try {
-    classesSnap = await getDocs(query(collection(db,'classes'), where('adminId','==',currentUser.uid)));
-  } catch(e) {
-    el.innerHTML = '<div class="empty-state"><span class="icon">⚠️</span>Could not load classes.</div>';
-    return;
-  }
+  const classesSnap = await getDocs(query(collection(db,'classes'), where('adminId','==',currentUser.uid)));
   const myClasses = classesSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const myClassIds = myClasses.map(c=>c.id);
 
-  if(!myClasses.length) {
+  if(!myClassIds.length) {
     el.innerHTML = '<div class="empty-state"><span class="icon">📚</span>No classes created yet. Create a class first.</div>';
     return;
   }
 
-  const myClassIds = myClasses.map(c=>c.id);
-
-  // Use array-contains-any to find students enrolled in teacher's classes
-  // This query is allowed by Firestore rules since we're authenticated
-  let enrolled = [];
-  try {
-    // array-contains-any supports max 10 values per query
-    const chunks = [];
-    for(let i=0; i<myClassIds.length; i+=10) chunks.push(myClassIds.slice(i,i+10));
-    const results = await Promise.all(chunks.map(chunk =>
-      getDocs(query(collection(db,'users'), where('enrolledClasses','array-contains-any', chunk)))
-    ));
-    const seen = new Set();
-    results.forEach(snap => snap.docs.forEach(d => {
-      if(!seen.has(d.id)) { seen.add(d.id); enrolled.push({id:d.id,...d.data()}); }
-    }));
-  } catch(e) {
-    // Fallback: try reading all students (requires permissive rules)
-    try {
-      const sSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
-      enrolled = sSnap.docs
-        .map(d=>({id:d.id,...d.data()}))
-        .filter(s => (s.enrolledClasses||[]).some(cid=>myClassIds.includes(cid)));
-    } catch(e2) {
-      el.innerHTML = '<div class="empty-state"><span class="icon">⚠️</span>Could not load students. Check Firestore rules allow authenticated reads on users collection.</div>';
-      return;
-    }
-  }
+  // Simple query — get all students, filter in JS (no index required)
+  const sSnap = await getDocs(query(collection(db,'users'), where('role','==','student')));
+  const allStudents = sSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const enrolled = allStudents.filter(s => (s.enrolledClasses||[]).some(cid => myClassIds.includes(cid)));
 
   const active = enrolled.filter(s=>!s.disabled);
   const disabled = enrolled.filter(s=>s.disabled);
