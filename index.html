@@ -1182,9 +1182,23 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('loading-screen').style.display = 'none';
   if(user) {
     currentUser = user;
-    const snap = await getDoc(doc(db,'users',user.uid));
-    if(snap.exists()) { currentUserData = snap.data(); initApp(); }
-    else { await signOut(auth); showAuthScreen(); }
+    try {
+      const snap = await getDoc(doc(db,'users',user.uid));
+      if(snap.exists()) {
+        currentUserData = snap.data();
+        initApp();
+      } else {
+        // Auth account exists but Firestore profile is missing — guide the user
+        await signOut(auth);
+        showAuthScreen();
+        toast('Account profile not found. Please register again or contact your teacher.', 'error');
+      }
+    } catch(e) {
+      // Firestore read failed (rules or network) — don't silently log out
+      await signOut(auth);
+      showAuthScreen();
+      toast('Could not load your profile. Check your connection and try again.', 'error');
+    }
   } else { currentUser = null; currentUserData = null; showAuthScreen(); }
 });
 
@@ -1233,7 +1247,19 @@ window.loginStudent = async () => {
     if(remember){ localStorage.setItem('rememberedEmail',email); localStorage.setItem('rememberedRole','student'); }
     else { localStorage.removeItem('rememberedEmail'); localStorage.removeItem('rememberedRole'); }
     toast('Welcome back! 👋','success');
-  } catch(e) { toast(e.message,'error'); }
+  } catch(e) {
+    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'||e.code==='auth/wrong-password') {
+      toast('Incorrect email or password. Check your details and try again.','error');
+    } else if(e.code==='auth/invalid-email') {
+      toast('Please enter a valid email address.','error');
+    } else if(e.code==='auth/too-many-requests') {
+      toast('Too many failed attempts. Wait a few minutes or reset your password.','error');
+    } else if(e.code==='auth/user-disabled') {
+      toast('This account has been disabled. Contact your teacher.','error');
+    } else {
+      toast(e.message,'error');
+    }
+  }
 };
 
 window.loginAdmin = async () => {
@@ -1245,11 +1271,21 @@ window.loginAdmin = async () => {
     await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const snap = await getDoc(doc(db,'users',cred.user.uid));
-    if(!snap.exists()||snap.data().role!=='admin') { await signOut(auth); return toast('Not a teacher account','error'); }
+    if(!snap.exists()||snap.data().role!=='admin') { await signOut(auth); return toast('No teacher account found for this email.','error'); }
     if(remember){ localStorage.setItem('rememberedEmail',email); localStorage.setItem('rememberedRole','admin'); }
     else { localStorage.removeItem('rememberedEmail'); localStorage.removeItem('rememberedRole'); }
     toast('Welcome, Teacher! 🎓','success');
-  } catch(e) { toast(e.message,'error'); }
+  } catch(e) {
+    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'||e.code==='auth/wrong-password') {
+      toast('Incorrect email or password. Check your details and try again.','error');
+    } else if(e.code==='auth/invalid-email') {
+      toast('Please enter a valid email address.','error');
+    } else if(e.code==='auth/too-many-requests') {
+      toast('Too many failed attempts. Wait a few minutes or reset your password.','error');
+    } else {
+      toast(e.message,'error');
+    }
+  }
 };
 
 window.registerStudent = async () => {
@@ -1261,10 +1297,23 @@ window.registerStudent = async () => {
   if(!name||!sid||!email||!pass) return toast('Fill all fields','error');
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db,'users',cred.user.uid),{name,studentId:sid,phone:phone||'',email,role:'student',createdAt:serverTimestamp(),enrolledClasses:[]});
+    await setDoc(doc(db,'users',cred.user.uid),{
+      name, studentId:sid, phone:phone||'', email, role:'student',
+      createdAt:serverTimestamp(), enrolledClasses:[], disabled:false
+    });
     closeModal('register-modal');
     toast('Account created! 🎉','success');
-  } catch(e) { toast(e.message,'error'); }
+  } catch(e) {
+    if(e.code==='auth/email-already-in-use') {
+      toast('An account with this email already exists. Try logging in, or use Forgot Password.','error');
+    } else if(e.code==='auth/weak-password') {
+      toast('Password must be at least 6 characters.','error');
+    } else if(e.code==='auth/invalid-email') {
+      toast('Please enter a valid email address.','error');
+    } else {
+      toast(e.message,'error');
+    }
+  }
 };
 
 window.registerAdmin = async () => {
@@ -1911,34 +1960,54 @@ window.downloadSessionCSV = className => {
 async function loadAdminStudents() {
   const snap=await getDocs(query(collection(db,'users'),where('role','==','student')));
   const students=snap.docs.map(d=>({id:d.id,...d.data()}));
+  // Show active students first, disabled ones at the bottom
+  const active = students.filter(s=>!s.disabled);
+  const disabled = students.filter(s=>s.disabled);
+  const allSorted = [...active, ...disabled];
   const el=document.getElementById('admin-students-table');
-  el.innerHTML=students.length?`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Action</th></tr></thead><tbody>
-  ${students.map(s=>`<tr>
+  el.innerHTML=allSorted.length?`<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Classes</th><th>Status</th><th>Action</th></tr></thead><tbody>
+  ${allSorted.map(s=>`<tr style="${s.disabled?'opacity:0.5':''}">
     <td style="font-weight:700">${s.name||'–'}</td>
     <td style="font-family:var(--font-mono)">${s.studentId||'–'}</td>
     <td>${s.email||'–'}</td>
     <td>${(s.enrolledClasses||[]).length}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${s.name}')">🗑️ Delete</button></td>
+    <td>${s.disabled?'<span class="chip chip-red">Removed</span>':'<span class="chip chip-green">Active</span>'}</td>
+    <td>${s.disabled?'<span style="color:var(--muted);font-size:13px">–</span>':`<button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${(s.name||'').replace(/'/g,"\\'")}')">🗑️ Remove</button>`}</td>
   </tr>`).join('')}
   </tbody></table></div>`:'<div class="empty-state"><span class="icon">👥</span>No students yet</div>';
 }
 
 window.deleteStudent = async (studentId, studentName) => {
-  if(!confirm(`Delete student "${studentName}"?\n\nThis will remove their account and all attendance records. Cannot be undone.`)) return;
+  if(!confirm(`Remove student "${studentName}"?\n\nThis will unenroll them from all classes and disable their account. Cannot be undone.`)) return;
   try {
-    await deleteDoc(doc(db,'users',studentId));
-    // Remove from all classes
-    const classesSnap=await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)));
+    // Use updateDoc instead of deleteDoc — teachers cannot delete other users' docs (Firestore rules)
+    // Mark as disabled and clear their enrolled classes
+    await updateDoc(doc(db,'users',studentId), {
+      enrolledClasses: [],
+      disabled: true,
+      disabledAt: serverTimestamp(),
+      disabledBy: currentUser.uid
+    });
+    // Remove student from ALL classes (not just teacher's own) so data stays consistent
+    const classesSnap = await getDocs(collection(db,'classes'));
     for(const classDoc of classesSnap.docs) {
-      const data=classDoc.data();
+      const data = classDoc.data();
       if((data.enrolledStudents||[]).includes(studentId)) {
-        await updateDoc(doc(db,'classes',classDoc.id),{enrolledStudents:data.enrolledStudents.filter(id=>id!==studentId)});
+        await updateDoc(doc(db,'classes',classDoc.id),{
+          enrolledStudents: data.enrolledStudents.filter(id => id !== studentId)
+        });
       }
     }
-    toast(`"${studentName}" deleted ✅`,'success');
+    toast(`"${studentName}" removed from all classes ✅`,'success');
     loadAdminStudents();
     loadAdminDashboard();
-  } catch(e) { toast(e.message,'error'); }
+  } catch(e) {
+    if(e.code === 'permission-denied') {
+      toast('Permission denied. Update your Firestore rules to allow teachers to update user docs.','error');
+    } else {
+      toast(e.message,'error');
+    }
+  }
 };
 
 // ===== REPORTS =====
