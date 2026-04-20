@@ -1422,9 +1422,11 @@ window.joinClassWithCode = async () => {
 };
 
 async function loadStudentDashboard() {
-  // Re-fetch latest user data so enrolledClasses is always current
-  const freshSnap = await getDoc(doc(db,'users',currentUser.uid));
-  if(freshSnap.exists()) currentUserData = freshSnap.data();
+  // Always re-fetch from Firestore so enrolled classes are current
+  try {
+    const freshSnap = await getDoc(doc(db,'users',currentUser.uid));
+    if(freshSnap.exists()) currentUserData = freshSnap.data();
+  } catch(e){}
   const attSnap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
   const records = attSnap.docs.map(d => d.data());
   const present = records.filter(r => r.checkIn).length;
@@ -1506,8 +1508,8 @@ async function loadStudentAttendance() {
 }
 
 window.downloadStudentReport = async fmt => {
+  toast('Preparing download...','info');
   try {
-    // Fetch directly without orderBy to avoid Firestore index requirement
     const snap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
     const records = snap.docs.map(d=>d.data());
     if(!records.length) return toast('No attendance records found','error');
@@ -1661,9 +1663,14 @@ async function loadAdminDashboard() {
     getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid))),
     getDocs(query(collection(db,'sessions'),where('active','==',true),where('adminId','==',currentUser.uid)))
   ]);
-  // Only count active (non-disabled) students
-  const activeStudentCount = studentsSnap.docs.filter(d => !d.data().disabled).length;
-  document.getElementById('a-total-students').textContent = activeStudentCount;
+  // Count only active students enrolled in at least one of this teacher's classes
+  const myClassIds = classesSnap.docs.map(d=>d.id);
+  const myStudentCount = studentsSnap.docs.filter(d=>{
+    const data = d.data();
+    if(data.disabled) return false;
+    return (data.enrolledClasses||[]).some(cid=>myClassIds.includes(cid));
+  }).length;
+  document.getElementById('a-total-students').textContent = myStudentCount;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
   // Calculate today's attendance percentage
