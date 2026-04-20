@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-hei
 @keyframes load{0%{width:0%;margin-left:0}50%{width:60%}100%{width:0%;margin-left:100%}}
 
 /* AUTH - X/Twitter Style */
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#000000;position:relative;z-index:1;}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#000000;position:fixed;inset:0;z-index:500;overflow-y:auto;}
 .auth-card{background:#000000;border:none;border-radius:0;padding:40px 36px;width:100%;max-width:400px;box-shadow:none}
 .auth-logo{font-size:2.4rem;font-weight:900;color:#ffffff;margin-bottom:28px;letter-spacing:-1px}
 .auth-sub{color:#71767b;font-size:15px;margin-bottom:28px;font-family:var(–font-main);font-weight:400}
@@ -703,7 +703,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 
 <!-- MAIN APP -->
 
-<div id="main-app" class="hidden">
+<div id="main-app" class="hidden" style="background:var(--bg);min-height:100vh;">
   <div class="top-bar">
     <div class="top-logo">AttendX</div>
     <div class="top-user">
@@ -1381,6 +1381,12 @@ window.joinClassWithCode = async () => {
     const classId = classDoc.id;
     const classData = classDoc.data();
 
+    // Always re-fetch fresh user data before checking enrollment to avoid stale cache
+    try {
+      const freshSnap = await getDoc(doc(db,'users',currentUser.uid));
+      if(freshSnap.exists()) currentUserData = freshSnap.data();
+    } catch(e){}
+
     // Check if already enrolled
     const alreadyEnrolled = (currentUserData.enrolledClasses||[]).includes(classId);
     if(alreadyEnrolled) {
@@ -1389,18 +1395,12 @@ window.joinClassWithCode = async () => {
       return;
     }
 
-    // Enroll student
+    // Enroll student - only update the student's own document (students don't have
+    // permission to write to the classes collection). Teacher dashboard reads
+    // enrolledClasses from users collection, so this is sufficient.
     const studentRef = doc(db,'users',currentUser.uid);
-    const classRef = doc(db,'classes',classId);
-
-    // Update student's enrolledClasses
     const newEnrolled = [...(currentUserData.enrolledClasses||[]), classId];
     await updateDoc(studentRef, { enrolledClasses: newEnrolled });
-
-    // Update class enrolledStudents
-    const classEnrolled = [...(classData.enrolledStudents||[])];
-    if(!classEnrolled.includes(currentUser.uid)) classEnrolled.push(currentUser.uid);
-    await updateDoc(classRef, { enrolledStudents: classEnrolled });
 
     // Update local user data
     currentUserData.enrolledClasses = newEnrolled;
@@ -1491,9 +1491,16 @@ async function loadStudentClasses() {
 
 // ===== STUDENT ATTENDANCE =====
 async function loadStudentAttendance() {
-  const q = query(collection(db,'attendance'),where('studentId','==',currentUser.uid),orderBy('checkInTime','desc'));
+  // Note: avoid orderBy with where to prevent missing composite index errors.
+  // Sort client-side instead.
+  const q = query(collection(db,'attendance'),where('studentId','==',currentUser.uid));
   const snap = await getDocs(q);
-  const records = snap.docs.map(d=>({id:d.id,...d.data()}));
+  const records = snap.docs.map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>{
+      const ta = a.checkInTime?.toDate?.()?.getTime() || 0;
+      const tb = b.checkInTime?.toDate?.()?.getTime() || 0;
+      return tb - ta;
+    });
   window._studentAttRecords = records;
   const el = document.getElementById('student-attendance-table');
   el.innerHTML = records.length ? `<div class="table-scroll-wrap"><table class="data-table"><thead><tr>
@@ -1673,13 +1680,16 @@ async function loadAdminDashboard() {
   document.getElementById('a-total-students').textContent = myStudentCount;
   document.getElementById('a-total-classes').textContent = classesSnap.size;
   document.getElementById('a-active-sessions').textContent = sessionsSnap.size;
-  // Calculate today's attendance percentage
+  // Calculate today's attendance percentage - fetch all and filter client-side
+  // to avoid Firestore composite index requirement on checkInTime range queries
   try {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
-    const todayAttSnap = await getDocs(query(collection(db,'attendance'),
-      where('checkInTime','>=',todayStart),where('checkInTime','<=',todayEnd)));
-    const todayRecords = todayAttSnap.docs.map(d=>d.data());
+    const todayAttSnap = await getDocs(query(collection(db,'attendance')));
+    const todayRecords = todayAttSnap.docs.map(d=>d.data()).filter(r=>{
+      const t = r.checkInTime?.toDate?.();
+      return t && t >= todayStart && t <= todayEnd;
+    });
     const todayPresent = todayRecords.filter(r=>r.checkIn).length;
     const todayTotal = todayRecords.length;
     document.getElementById('a-today-att').textContent = todayTotal > 0 ? Math.round(todayPresent/todayTotal*100)+'%' : '0%';
@@ -1698,13 +1708,24 @@ async function loadAdminDashboard() {
       </div>
       <button class="btn btn-danger btn-sm" onclick="endSession('${s.id}')">End</button>
     </div>`).join('') : '<div class="empty-state"><span class="icon">📭</span>No active sessions</div>';
-  const recentSnap = await getDocs(query(collection(db,'attendance'),orderBy('checkInTime','desc')));
+  const recentSnap = await getDocs(query(collection(db,'attendance')));
   const allRecords = recentSnap.docs;
-  // Auto-delete attendance records older than 7 days
+  // Auto-delete attendance records older than 7 days (only for this teacher's classes)
   const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000);
   const oldRecords = allRecords.filter(d=>{ const t=d.data().checkInTime?.toDate?.(); return t && t < sevenDaysAgo; });
-  if(oldRecords.length) await Promise.all(oldRecords.map(d=>deleteDoc(doc(db,'attendance',d.id))));
-  const recent = allRecords.filter(d=>!oldRecords.find(o=>o.id===d.id)).slice(0,8).map(d=>({id:d.id,...d.data()}));
+  if(oldRecords.length) {
+    try { await Promise.all(oldRecords.map(d=>deleteDoc(doc(db,'attendance',d.id)))); } catch(e){}
+  }
+  // Only show records for THIS teacher's classes
+  const myTeacherClassIds = (await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)))).docs.map(d=>d.id);
+  const myRecords = allRecords
+    .filter(d=>!oldRecords.find(o=>o.id===d.id) && myTeacherClassIds.includes(d.data().classId))
+    .sort((a,b)=>{
+      const ta = a.data().checkInTime?.toDate?.()?.getTime()||0;
+      const tb = b.data().checkInTime?.toDate?.()?.getTime()||0;
+      return tb-ta;
+    });
+  const recent = myRecords.slice(0,8).map(d=>({id:d.id,...d.data()}));
   const rEl = document.getElementById('admin-recent-activity');
   rEl.innerHTML = recent.length ? `
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
@@ -1958,24 +1979,39 @@ window.endSession = async sessionId => {
 
 window.deleteAttendanceRecord = async (recordId) => {
   if(!confirm('Delete this attendance record?')) return;
-  await deleteDoc(doc(db,'attendance',recordId));
-  toast('Record deleted','success');
-  loadAdminDashboard();
+  try {
+    await deleteDoc(doc(db,'attendance',recordId));
+    toast('Record deleted','success');
+    loadAdminDashboard();
+  } catch(e) {
+    toast('Failed to delete: ' + (e.code==='permission-denied' ? 'Permission denied. Check Firestore rules.' : e.message), 'error');
+  }
 };
 
 window.clearAllRecentActivity = async () => {
   if(!confirm('Clear all recent activity records? This cannot be undone.')) return;
-  const snap = await getDocs(query(collection(db,'attendance'),orderBy('checkInTime','desc')));
-  await Promise.all(snap.docs.slice(0,8).map(d=>deleteDoc(doc(db,'attendance',d.id))));
-  toast('Recent activity cleared ✅','success');
-  loadAdminDashboard();
+  try {
+    // Only clear records belonging to this teacher's classes
+    const myClassIds = (await getDocs(query(collection(db,'classes'),where('adminId','==',currentUser.uid)))).docs.map(d=>d.id);
+    const snap = await getDocs(query(collection(db,'attendance')));
+    const toDelete = snap.docs.filter(d=>myClassIds.includes(d.data().classId));
+    await Promise.all(toDelete.map(d=>deleteDoc(doc(db,'attendance',d.id))));
+    toast('Recent activity cleared ✅','success');
+    loadAdminDashboard();
+  } catch(e) {
+    toast('Failed to clear: ' + (e.code==='permission-denied' ? 'Permission denied. Check Firestore rules.' : e.message), 'error');
+  }
 };
 
 window.deletePastSession = async (sessionId) => {
   if(!confirm('Delete this past session? Attendance records for it will remain.')) return;
-  await deleteDoc(doc(db,'sessions',sessionId));
-  toast('Session deleted ✅','success');
-  loadAdminSessions();
+  try {
+    await deleteDoc(doc(db,'sessions',sessionId));
+    toast('Session deleted ✅','success');
+    loadAdminSessions();
+  } catch(e) {
+    toast('Failed to delete: ' + (e.code==='permission-denied' ? 'Permission denied. Check Firestore rules.' : e.message), 'error');
+  }
 };
 
 // Auto-delete past sessions older than 24 hours
