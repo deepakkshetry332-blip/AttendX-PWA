@@ -1325,7 +1325,7 @@ window.registerAdmin = async () => {
   const settings = settingsSnap.exists() ? settingsSnap.data() : {};
   if(settings.adminCode && settings.adminCode !== code) return toast('Invalid access code','error');
   try {
-    // Use a secondary app instance so the current teacher session is never disrupted
+    // Use a secondary app instance so the current session is never disrupted
     const secondaryApp = getApps().find(a=>a.name==='secondary') || initializeApp(firebaseConfig,'secondary');
     const secondaryAuth = getAuth(secondaryApp);
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
