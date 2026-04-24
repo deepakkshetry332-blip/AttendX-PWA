@@ -1118,7 +1118,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, browserSessionPersistence, setPersistence, reauthenticateWithCredential, EmailAuthProvider }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, orderBy,
@@ -1325,9 +1325,18 @@ window.registerAdmin = async () => {
   const settings = settingsSnap.exists() ? settingsSnap.data() : {};
   if(settings.adminCode && settings.adminCode !== code) return toast('Invalid access code','error');
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    // Use a secondary app instance so the current teacher session is never disrupted
+    const secondaryApp = getApps().find(a=>a.name==='secondary') || initializeApp(firebaseConfig,'secondary');
+    const secondaryAuth = getAuth(secondaryApp);
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
     await setDoc(doc(db,'users',cred.user.uid),{name,department:dept,email,role:'admin',createdAt:serverTimestamp(),adminPin:'1234'});
+    await signOut(secondaryAuth);
     closeModal('admin-register-modal');
+    document.getElementById('areg-name').value='';
+    document.getElementById('areg-dept').value='';
+    document.getElementById('areg-email').value='';
+    document.getElementById('areg-password').value='';
+    document.getElementById('areg-code').value='';
     toast('Teacher account created! 🎉','success');
   } catch(e) { toast(e.message,'error'); }
 };
@@ -1443,9 +1452,8 @@ async function loadStudentDashboard() {
     const freshSnap = await getDoc(doc(db,'users',currentUser.uid));
     if(freshSnap.exists()) currentUserData = freshSnap.data();
   } catch(e){}
-  const deletedIds = currentUserData.deletedAttendanceIds || [];
   const attSnap = await getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid)));
-  const records = attSnap.docs.map(d => d.data()).filter((_,i) => !deletedIds.includes(attSnap.docs[i].id));
+  const records = attSnap.docs.map(d => d.data());
   const present = records.filter(r => r.checkIn).length;
   const total = records.length;
   const pct = total ? Math.round(present/total*100) : 0;
@@ -1510,13 +1518,9 @@ async function loadStudentClasses() {
 async function loadStudentAttendance() {
   // Note: avoid orderBy with where to prevent missing composite index errors.
   // Sort client-side instead.
-  const [snap, userSnap] = await Promise.all([
-    getDocs(query(collection(db,'attendance'),where('studentId','==',currentUser.uid))),
-    getDoc(doc(db,'users',currentUser.uid))
-  ]);
-  const deletedIds = userSnap.data()?.deletedAttendanceIds || [];
+  const q = query(collection(db,'attendance'),where('studentId','==',currentUser.uid));
+  const snap = await getDocs(q);
   const records = snap.docs.map(d=>({id:d.id,...d.data()}))
-    .filter(r => !deletedIds.includes(r.id))
     .sort((a,b)=>{
       const ta = a.checkInTime?.toDate?.()?.getTime() || 0;
       const tb = b.checkInTime?.toDate?.()?.getTime() || 0;
@@ -2067,17 +2071,12 @@ window.deleteAttendanceRecord = async (recordId) => {
     loadStudentDashboard();
   } catch(e) {
     if(e.code === 'permission-denied') {
-      // Rules block direct delete — persist the hidden ID in the student's own user doc
-      try {
-        const userRef = doc(db,'users',currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        const existing = userSnap.data()?.deletedAttendanceIds || [];
-        if(!existing.includes(recordId)) {
-          await updateDoc(userRef, { deletedAttendanceIds: [...existing, recordId] });
-        }
-      } catch(e2) { console.error('Could not persist deletion:', e2); }
-      toast('Record removed ✅','success');
-      loadStudentAttendance();
+      // Rules block delete — remove from local view only
+      window._studentAttRecords = (window._studentAttRecords||[]).filter(r=>r.id!==recordId);
+      const el = document.getElementById('student-attendance-table');
+      const btn = el.querySelector(`button[onclick*="${recordId}"]`);
+      if(btn) btn.closest('tr').remove();
+      toast('Record removed from view ✅','success');
       loadStudentDashboard();
     } else {
       toast('Error: ' + e.message,'error');
