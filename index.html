@@ -1325,18 +1325,18 @@ window.registerAdmin = async () => {
   const settings = settingsSnap.exists() ? settingsSnap.data() : {};
   if(settings.adminCode && settings.adminCode !== code) return toast('Invalid access code','error');
   try {
-    // Use a secondary app instance so the current session is never disrupted
+    // Secondary app so createUserWithEmailAndPassword never touches the main auth session
     const secondaryApp = getApps().find(a=>a.name==='secondary') || initializeApp(firebaseConfig,'secondary');
     const secondaryAuth = getAuth(secondaryApp);
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
     await setDoc(doc(db,'users',cred.user.uid),{name,department:dept,email,role:'admin',createdAt:serverTimestamp(),adminPin:'1234'});
     await signOut(secondaryAuth);
-    closeModal('admin-register-modal');
     document.getElementById('areg-name').value='';
     document.getElementById('areg-dept').value='';
     document.getElementById('areg-email').value='';
     document.getElementById('areg-password').value='';
     document.getElementById('areg-code').value='';
+    closeModal('admin-register-modal');
     toast('Teacher account created! 🎉','success');
   } catch(e) { toast(e.message,'error'); }
 };
