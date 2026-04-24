@@ -1353,10 +1353,12 @@ window.registerAdmin = async () => {
   // before setDoc runs), which causes the permission error.
   const secondaryApp = initializeApp(firebaseConfig, 'reg-' + Date.now());
   const secondaryAuth = getAuth(secondaryApp);
+  const secondaryDb = getFirestore(secondaryApp);
   try {
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-    // Write the profile using the main db (admin is still signed in on main auth)
-    await setDoc(doc(db,'users',cred.user.uid),{
+    // Write profile using the secondary db — request.auth.uid will be the new
+    // teacher's UID, matching the /users/{userId} rule exactly.
+    await setDoc(doc(secondaryDb,'users',cred.user.uid),{
       name, department:dept, email, role:'admin',
       createdAt:serverTimestamp(), adminPin:'1234'
     });
