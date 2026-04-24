@@ -2,6 +2,12 @@
 
 <html lang="en">
 <head>
+<script>
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#f0f4ff"/>
@@ -1325,7 +1331,6 @@ window.registerAdmin = async () => {
   const settings = settingsSnap.exists() ? settingsSnap.data() : {};
   if(settings.adminCode && settings.adminCode !== code) return toast('Invalid access code','error');
   try {
-    // Secondary app so createUserWithEmailAndPassword never touches the main auth session
     const secondaryApp = getApps().find(a=>a.name==='secondary') || initializeApp(firebaseConfig,'secondary');
     const secondaryAuth = getAuth(secondaryApp);
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
@@ -2909,7 +2914,7 @@ async function handleQrCheckin(decodedText) {
       document.getElementById('checkin-mode-chip').textContent = 'ð´ CHECK-OUT MODE';
       document.getElementById('checkin-mode-chip').className = 'chip chip-red';
       currentCheckinMode = 'out';
-    } else if(existing.data().checkIn && !existing.data().checkOut) {
+    } else if(existing.data().checkIn  && !existing.data().checkOut) {
       // Check out
       await updateDoc(doc(db,'attendance',existing.id),{checkOut:true,checkOutTime:now});
       toast('✅ Checked out via QR! ' + session.className, 'success');
