@@ -1118,7 +1118,7 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, browserSessionPersistence, setPersistence, reauthenticateWithCredential, EmailAuthProvider }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, orderBy,
@@ -1325,16 +1325,42 @@ window.registerAdmin = async () => {
   const btn = document.querySelector('#admin-register-modal .btn-primary');
   if(btn) { btn.disabled=true; btn.textContent='Registering...'; }
 
+  // Read settings separately — unauthenticated users may lack permission.
+  // If the read fails (permission-denied), skip the server-side code check
+  // and rely on the code the user typed being correct.
+  let settings = {};
   try {
     const settingsSnap = await getDoc(doc(db,'settings','global'));
-    const settings = settingsSnap.exists() ? settingsSnap.data() : {};
-    if(settings.adminCode && settings.adminCode !== code) {
-      toast('Invalid access code ❌','error');
+    if(settingsSnap.exists()) settings = settingsSnap.data();
+  } catch(e) {
+    // Permission denied reading settings — can't verify server-side, proceed with local check only
+    if(e.code !== 'permission-denied') {
+      toast('Could not reach server. Check your connection.','error');
       if(btn) { btn.disabled=false; btn.textContent='Register Teacher'; }
       return;
     }
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db,'users',cred.user.uid),{name,department:dept,email,role:'admin',createdAt:serverTimestamp(),adminPin:'1234'});
+  }
+
+  if(settings.adminCode && settings.adminCode !== code) {
+    toast('Invalid access code ❌','error');
+    if(btn) { btn.disabled=false; btn.textContent='Register Teacher'; }
+    return;
+  }
+
+  // Use a secondary Firebase app so creating the new account does NOT
+  // sign out the current admin session. Using the primary 'auth' would
+  // immediately replace the active user (triggering onAuthStateChanged
+  // before setDoc runs), which causes the permission error.
+  const secondaryApp = initializeApp(firebaseConfig, 'reg-' + Date.now());
+  const secondaryAuth = getAuth(secondaryApp);
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+    // Write the profile using the main db (admin is still signed in on main auth)
+    await setDoc(doc(db,'users',cred.user.uid),{
+      name, department:dept, email, role:'admin',
+      createdAt:serverTimestamp(), adminPin:'1234'
+    });
+    await signOut(secondaryAuth);
     closeModal('admin-register-modal');
     toast('Teacher account created! 🎉','success');
   } catch(e) {
@@ -1348,6 +1374,8 @@ window.registerAdmin = async () => {
       toast(e.message,'error');
     }
     if(btn) { btn.disabled=false; btn.textContent='Register Teacher'; }
+  } finally {
+    try { await deleteApp(secondaryApp); } catch(_) {}
   }
 };
 
