@@ -1096,6 +1096,24 @@ body.dark .join-code-box { background: var(–surface2); border-color: var(–bo
   </div>
 </div>
 
+<!-- ADMIN PIN GATE MODAL -->
+
+<div id="pin-gate-modal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <button class="modal-close" onclick="cancelPinGate()">&#x2715;</button>
+    <div class="modal-title" id="pin-gate-title">🔑 Enter Admin PIN</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6" id="pin-gate-desc">Enter your Admin PIN to continue.</p>
+    <div class="form-group" style="text-align:left">
+      <label>Admin PIN</label>
+      <input type="password" id="pin-gate-input" placeholder="Enter PIN" maxlength="8"
+        style="letter-spacing:0.2em;font-size:20px;font-family:var(--font-mono);text-align:center"
+        onkeydown="if(event.key==='Enter') confirmPinGate()"/>
+    </div>
+    <button class="btn btn-primary" onclick="confirmPinGate()">✅ Confirm</button>
+    <button class="link-btn" onclick="cancelPinGate()">Cancel</button>
+  </div>
+</div>
+
 <!-- RESET PIN MODAL -->
 
 <div id="reset-pin-modal" class="modal-overlay hidden">
@@ -1389,6 +1407,17 @@ window.logout = async () => {
 
 // ===== NAVIGATION =====
 window.showPanel = (panelId, navId) => {
+  if(panelId === 'settings') {
+    requirePin('Settings Access', 'Enter your Admin PIN to access Settings.').then(ok => {
+      if(!ok) return;
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      startInactivityTimer();
+      document.getElementById('panel-settings').classList.add('active');
+      document.querySelectorAll(`#${navId} .nav-tab`).forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+    });
+    return;
+  }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   startInactivityTimer();
   document.getElementById(`panel-${panelId}`).classList.add('active');
@@ -1964,6 +1993,8 @@ window.saveEditClass = async () => {
 // ===== DELETE CLASS =====
 window.deleteClass = async (classId, className) => {
   if(!confirm(`Delete "${className}"?\n\nThis will also remove all attendance records for this class. This cannot be undone.`)) return;
+  const pinOk = await requirePin('Confirm Delete', `Enter your Admin PIN to permanently delete "${className}".`);
+  if(!pinOk) return;
   try {
     await deleteDoc(doc(db,'classes',classId));
     // Remove from all students' enrolled classes
@@ -2038,6 +2069,8 @@ window.startSession = async () => {
   const classId=document.getElementById('session-class-select').value;
   const radius=parseInt(document.getElementById('session-geo-radius').value)||100;
   if(!classId) return toast('Select a class','error');
+  const pinOk = await requirePin('Admin PIN Required', 'Enter your Admin PIN to start this session.');
+  if(!pinOk) return;
   const classSnap=await getDoc(doc(db,'classes',classId));
   if(!classSnap.exists()) return toast('Class not found','error');
   const cls=classSnap.data();
@@ -2411,6 +2444,38 @@ async function loadAdminProfile() {
     if(codeEl) codeEl.textContent = s.adminCode || '(not set)';
   }
 }
+
+// ===== ADMIN PIN GATE =====
+let _pinGateResolve = null;
+
+window.requirePin = (title, desc) => {
+  return new Promise((resolve) => {
+    _pinGateResolve = resolve;
+    document.getElementById('pin-gate-title').textContent = '🔑 ' + title;
+    document.getElementById('pin-gate-desc').textContent = desc;
+    document.getElementById('pin-gate-input').value = '';
+    document.getElementById('pin-gate-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('pin-gate-input').focus(), 100);
+  });
+};
+
+window.confirmPinGate = () => {
+  const entered = document.getElementById('pin-gate-input').value;
+  const correct = currentUserData.adminPin || '1234';
+  if(entered !== correct) {
+    toast('Incorrect PIN ❌', 'error');
+    document.getElementById('pin-gate-input').value = '';
+    document.getElementById('pin-gate-input').focus();
+    return;
+  }
+  document.getElementById('pin-gate-modal').classList.add('hidden');
+  if(_pinGateResolve) { _pinGateResolve(true); _pinGateResolve = null; }
+};
+
+window.cancelPinGate = () => {
+  document.getElementById('pin-gate-modal').classList.add('hidden');
+  if(_pinGateResolve) { _pinGateResolve(false); _pinGateResolve = null; }
+};
 
 window.changeAdminPin = async () => {
   const current=document.getElementById('current-pin').value;
